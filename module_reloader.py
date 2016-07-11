@@ -1,7 +1,6 @@
 import sublime
 import sublime_plugin
 import os
-from imp import reload
 from sys import modules
 
 
