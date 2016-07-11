@@ -39,7 +39,5 @@ class ModuleReloader(sublime_plugin.EventListener):
         ignored_packages = psettings.get("ignored_packages", [])
         ignored_packages.append(pkg_name)
         psettings.set("ignored_packages", ignored_packages)
-        sublime.save_settings("Preferences.sublime-settings")
         ignored_packages.pop(-1)
         psettings.set("ignored_packages", ignored_packages)
-        sublime.save_settings("Preferences.sublime-settings")
