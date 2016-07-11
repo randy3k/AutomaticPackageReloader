@@ -32,7 +32,9 @@ class ModuleReloader(sublime_plugin.EventListener):
                 del modules[mod]
 
         del modules[pkg_name]
+        sublime.set_timeout_async(lambda: self.reload_package(pkg_name), 500)
 
+    def reload_package(self, pkg_name):
         # disable and re-enabling the package
         psettings = sublime.load_settings("Preferences.sublime-settings")
         ignored_packages = psettings.get("ignored_packages", [])
