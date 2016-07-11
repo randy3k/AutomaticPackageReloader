@@ -30,5 +30,5 @@ class ModuleReloader(sublime_plugin.EventListener):
         mods = list(modules.keys()).copy()
         for mod in mods:
             if mod.startswith(pkg_name + "."):
-                reload(modules[mod])
+                del modules[mod]
         reload(modules[pkg_name])
