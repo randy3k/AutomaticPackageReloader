@@ -17,22 +17,12 @@ class ModuleReloader(sublime_plugin.EventListener):
         if sublime.packages_path() not in file_name:
             return
 
-        pd = view.window().project_data()
-        if not pd:
-            return
-
         try:
-            pkg_name = os.path.basename(pd["folders"][0]["path"])
+            pkg_name = file_name.replace(sublime.packages_path(), "").split(os.sep)[1]
         except:
             return
 
-        mods = list(modules.keys()).copy()
-        for mod in mods:
-            if mod.startswith(pkg_name + "."):
-                del modules[mod]
-
-        del modules[pkg_name]
-        sublime.set_timeout_async(lambda: self.reload_package(pkg_name), 500)
+        sublime.set_timeout_async(lambda: self.reload_package(pkg_name), 0)
 
     def reload_package(self, pkg_name):
         # disable and re-enabling the package
@@ -40,5 +30,12 @@ class ModuleReloader(sublime_plugin.EventListener):
         ignored_packages = psettings.get("ignored_packages", [])
         ignored_packages.append(pkg_name)
         psettings.set("ignored_packages", ignored_packages)
+
+        mods = list(modules.keys()).copy()
+        for mod in mods:
+            if mod.startswith(pkg_name + "."):
+                del modules[mod]
+        del modules[pkg_name]
+
         ignored_packages.pop(-1)
         psettings.set("ignored_packages", ignored_packages)
