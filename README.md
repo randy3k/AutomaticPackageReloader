@@ -7,9 +7,10 @@ reloading the package without the need of reopening ST.
 
 ### Usage
 
-You don't need to do anything except to install ModuleReloader. When a `*py`
-file sitting inside `sublime.packages_path()` is saved, ModuleReloader will
-guess the package name from the file path in order to remove the submodules
+To reload the package in the current window, use `Module Reloader: Reload`.
+
+To activate reload on saving a `*py` file, use `Module Reloader: Toggle Reload On Save`.
+ModuleReloader will guess the package name from the file path in order to remove the submodules
 and to reload the package.
 
 ![](shot.png)

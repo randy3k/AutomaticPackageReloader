@@ -1,0 +1,10 @@
+[
+    {
+        "caption": "Module Reloader: Reload",
+        "command": "module_reloader_reload"
+    },
+    {
+        "caption": "Module Reloader: Toggle Reload On Save",
+        "command": "module_reloader_toggle_reload_on_save"
+    }
+]
