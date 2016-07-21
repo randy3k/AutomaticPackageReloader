@@ -4,7 +4,7 @@
         "command": "module_reloader_reload"
     },
     {
-        "caption": "Module Reloader: Toggle Reload On Save",
+        "caption": "Module Reloader: Toggle Reload on Save",
         "command": "module_reloader_toggle_reload_on_save"
     }
 ]

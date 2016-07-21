@@ -107,6 +107,8 @@ def reload_package(pkg_name):
 
     dprint("end", fill='-')
 
+    sublime.set_timeout(lambda: sublime.status_message("Reloaded."), 500)
+
 
 def ensure_loaded(main, modules):
     # More simple (comparing to reload_modules(perform_reload=False)) and dumb
