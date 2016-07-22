@@ -88,6 +88,13 @@ def reload_package(pkg_name):
         dprint("ERROR", pkg_name, "is not loaded.")
         return
 
+    # we need to disable and reenable the package enable to make sure
+    # the TextCommand's and WindowCommand's would be loaded.
+    psettings = sublime.load_settings("Preferences.sublime-settings")
+    ignored_packages = psettings.get("ignored_packages", [])
+    ignored_packages.append(pkg_name)
+    psettings.set("ignored_packages", ignored_packages)
+
     main = sys.modules[pkg_name]
     dprint("begin", fill='=')
 
@@ -104,7 +111,10 @@ def reload_package(pkg_name):
 
     dprint("end", fill='-')
 
-    sublime.set_timeout(lambda: sublime.status_message("Reloaded."), 500)
+    ignored_packages.pop(-1)
+    psettings.set("ignored_packages", ignored_packages)
+
+    sublime.set_timeout(lambda: sublime.status_message("Module Reloaded."), 500)
 
 
 def ensure_loaded(main, modules):
