@@ -50,7 +50,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             if pd and "folders" in pd and pd["folders"]:
                 folder = pd["folders"][0].get("path", "")
                 path = expand_folder(folder, self.window.project_file_name())
-                pkg_name = path.replace(spp, "").split(os.sep)[1]
+                pkg_name = os.path.realpath(path).replace(spp, "").split(os.sep)[1]
 
         if pkg_name:
             sublime.set_timeout_async(lambda: reload_package(pkg_name))
