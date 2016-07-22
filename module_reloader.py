@@ -26,10 +26,7 @@ def trace(*args, tag="debug", fill=None, fill_width=60, **kwargs):
     print("[{}]".format(tag), *args, **kwargs)
 
 
-def trace_for_tag(tag):
-    return functools.partial(trace, tag=tag)
-
-dprint = trace_for_tag("Module Reloader")
+dprint = functools.partial(trace, tag="Module Reloader")
 
 
 def expand_folder(folder, project_file):
