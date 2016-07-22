@@ -1,12 +1,13 @@
-import sublime_plugin
 import sublime
+import sublime_plugin
+import os
 import builtins
 import functools
 import importlib
 import sys
 import types
 from contextlib import contextmanager
-import os
+from .stack_meter import StackMeter
 
 
 def trace(*args, tag="debug", fill=None, fill_width=60, **kwargs):
@@ -18,64 +19,11 @@ def trace(*args, tag="debug", fill=None, fill_width=60, **kwargs):
     print("[{}]".format(tag), *args, **kwargs)
 
 
-dprint = functools.partial(trace, tag="Module Reloader")
-
-
-def expand_folder(folder, project_file):
-    if project_file:
-        root = os.path.dirname(project_file)
-        if not os.path.isabs(folder):
-            folder = os.path.abspath(os.path.join(root, folder))
-    return folder
-
-
-class ModuleReloaderListener(sublime_plugin.EventListener):
-
-    def on_post_save(self, view):
-        if view.is_scratch() or view.settings().get('is_widget'):
-            return False
-        module_reloader_settings = sublime.load_settings("module_reloader.sulime-settings")
-        if module_reloader_settings.get("reload_on_save"):
-            sublime.set_timeout_async(view.window().run_command("module_reloader_reload"))
-
-
-class ModuleReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
-
-    def run(self):
-        module_reloader_settings = sublime.load_settings("module_reloader.sulime-settings")
-        reload_on_save = not module_reloader_settings.get("reload_on_save", False)
-        module_reloader_settings.set("reload_on_save", reload_on_save)
-        onoff = "on" if reload_on_save else "off"
-        sublime.status_message("Module Reloader: Reload On Save is %s." % onoff)
-
-
-class ModuleReloaderReloadCommand(sublime_plugin.WindowCommand):
-
-    def run(self, pkg_name=None):
-        spp = os.path.realpath(sublime.packages_path())
-
-        if not pkg_name:
-            view = self.window.active_view()
-            file_name = view.file_name()
-            if file_name:
-                file_name = os.path.realpath(file_name)
-                if file_name and file_name.endswith(".py") and spp in file_name:
-                    pkg_name = file_name.replace(spp, "").split(os.sep)[1]
-
-        if not pkg_name:
-            pd = self.window.project_data()
-            if pd and "folders" in pd and pd["folders"]:
-                folder = pd["folders"][0].get("path", "")
-                path = expand_folder(folder, self.window.project_file_name())
-                pkg_name = path.replace(spp, "").split(os.sep)[1]
-
-        if pkg_name:
-            sublime.set_timeout_async(lambda: reload_package(pkg_name))
+dprint = functools.partial(trace, tag="Package Reloader")
 
 
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
-
 def reload_package(pkg_name):
     if pkg_name not in sys.modules:
         dprint("ERROR:", pkg_name, "is not loaded.")
@@ -92,18 +40,36 @@ def reload_package(pkg_name):
     except:
         dprint("ERROR", fill='-')
         reload_modules(main, modules, perform_reload=False)
+        sublime.set_timeout(
+            lambda: sublime.status_message("Fail to reload {}.".format(pkg_name)), 500)
         raise
     finally:
         ensure_loaded(main, modules)
 
-    dprint("end", fill='-')
-
     # a hack to trigger automatic "reloading plugins"
     # this is needed to ensure TextCommand's and WindowCommand's are ready.
-    dummy = os.path.join(sublime.packages_path(), "_moduler_reloader.py")
-    open(dummy, "w").close()
-    sublime.set_timeout(lambda: os.path.exists(dummy) and os.unlink(dummy), 100)
-    sublime.set_timeout(lambda: sublime.status_message("Module Reloaded."), 500)
+    dprint("installing dummy package")
+    dummy = "_dummy_package"
+    dummy_py = os.path.join(sublime.packages_path(), "%s.py" % dummy)
+    open(dummy_py, "w").close()
+
+    def remove_dummy():
+        if dummy in sys.modules:
+            dprint("removing dummy package")
+            if os.path.exists(dummy_py):
+                os.unlink(dummy_py)
+            after_remove_dummy()
+        else:
+            sublime.set_timeout_async(remove_dummy, 100)
+
+    def after_remove_dummy():
+        if dummy not in sys.modules:
+            sublime.status_message("{} reloaded.".format(main.__name__))
+            dprint("end", fill='-')
+        else:
+            sublime.set_timeout_async(after_remove_dummy, 100)
+
+    sublime.set_timeout_async(remove_dummy, 100)
 
 
 def ensure_loaded(main, modules):
@@ -116,13 +82,24 @@ def ensure_loaded(main, modules):
         reload_plugin(main.__name__)
 
 
+def reload_plugin(pkg_name):
+    pkg_path = os.path.join(os.path.realpath(sublime.packages_path()), pkg_name)
+    if os.path.exists(os.path.join(pkg_path, "__init__.py")):
+        sublime_plugin.reload_plugin(pkg_name)
+    else:
+        plugins = [pkg_name + "." + os.path.splitext(f)[0]
+                   for f in os.listdir(pkg_path) if f.endswith(".py")]
+        for plugin in plugins:
+            sublime_plugin.reload_plugin(plugin)
+
+
 def reload_modules(main, modules, perform_reload=True):
 
     if perform_reload:
         sublime_plugin.unload_module(main)
 
-    module_names = [main.__name__] + sorted(name for name in modules
-                                            if name != main.__name__)
+    module_names = [main.__name__] + \
+        sorted(name for name in modules if name != main.__name__)
 
     loaded_modules = dict(sys.modules)
     for name in loaded_modules:
@@ -156,15 +133,14 @@ def reload_modules(main, modules, perform_reload=True):
             importlib.import_module(name)
 
 
-def reload_plugin(pkg_name):
-    pkg_path = os.path.join(os.path.realpath(sublime.packages_path()), pkg_name)
-    if os.path.exists(os.path.join(pkg_path, "__init__.py")):
-        sublime_plugin.reload_plugin(pkg_name)
-    else:
-        plugins = [pkg_name + "." + os.path.splitext(f)[0]
-                   for f in os.listdir(pkg_path) if f.endswith(".py")]
-        for plugin in plugins:
-            sublime_plugin.reload_plugin(plugin)
+@contextmanager
+def intercepting_imports(hook):
+    sys.meta_path.insert(0, hook)
+    try:
+        yield
+    finally:
+        if hook in sys.meta_path:
+            sys.meta_path.remove(hook)
 
 
 @contextmanager
@@ -193,16 +169,6 @@ def importing_fromlist_aggresively(modules):
         builtins.__import__ = orig___import__
 
 
-@contextmanager
-def intercepting_imports(hook):
-    sys.meta_path.insert(0, hook)
-    try:
-        yield hook
-    finally:
-        if hook in sys.meta_path:
-            sys.meta_path.remove(hook)
-
-
 class FilteringImportHook:
     """
     PEP-302 importer that delegates loading of given modules to a function.
@@ -221,19 +187,3 @@ class FilteringImportHook:
     def find_module(self, name, path=None):
         if self.condition(name):
             return self
-
-
-class StackMeter:
-    """Reentrant context manager counting the reentrancy depth."""
-
-    def __init__(self, depth=0):
-        super().__init__()
-        self.depth = depth
-
-    def __enter__(self):
-        depth = self.depth
-        self.depth += 1
-        return depth
-
-    def __exit__(self, *exc_info):
-        self.depth -= 1
