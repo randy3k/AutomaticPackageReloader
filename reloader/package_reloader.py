@@ -94,9 +94,9 @@ def reload_modules(main, modules, perform_reload=True):
 
     if perform_reload:
         sublime_plugin.unload_module(main)
-
-    module_names = [main.__name__] + \
-        sorted(name for name in modules if name != main.__name__)
+        for m in modules:
+            if m in sys.modules:
+                sublime_plugin.unload_module(modules[m])
 
     loaded_modules = dict(sys.modules)
     for name in loaded_modules:
@@ -125,7 +125,9 @@ def reload_modules(main, modules, perform_reload=True):
             return module
 
     with intercepting_imports(module_reloader), importing_fromlist_aggresively(modules):
+
         reload_plugin(main.__name__)
+        module_names = sorted(name for name in modules)
         for name in module_names:
             importlib.import_module(name)
 
