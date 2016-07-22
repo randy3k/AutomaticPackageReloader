@@ -103,28 +103,8 @@ def reload_modules(main, modules, perform_reload=True):
         if name in modules:
             del sys.modules[name]
 
-    stack_meter = StackMeter()
-
-    @FilteringImportHook.when(condition=lambda name: name in modules)
-    def module_reloader(name):
-        module = modules[name]
-        sys.modules[name] = module  # restore the module back
-
-        if perform_reload:
-            with stack_meter as depth:
-                dprint("reloading", ('| '*depth) + '|--', name)
-                try:
-                    return module.__loader__.load_module(name)
-                except:
-                    if name in sys.modules:
-                        del sys.modules[name]  # to indicate an error
-                    raise
-        else:
-            if name not in loaded_modules:
-                dprint("No Reload", '---', name)
-            return module
-
-    with intercepting_imports(module_reloader), importing_fromlist_aggresively(modules):
+    finder = ModuleFinder(modules, loaded_modules, perform_reload)
+    with intercepting_imports(finder), importing_fromlist_aggresively(modules):
 
         reload_plugin(main.__name__)
         module_names = sorted(name for name in modules)
@@ -168,21 +148,31 @@ def importing_fromlist_aggresively(modules):
         builtins.__import__ = orig___import__
 
 
-class FilteringImportHook:
-    """
-    PEP-302 importer that delegates loading of given modules to a function.
-    """
-
-    def __init__(self, condition, load_module):
-        super().__init__()
-        self.condition = condition
-        self.load_module = load_module
-
-    @classmethod
-    def when(cls, condition):
-        """A handy loader function decorator."""
-        return lambda load_module: cls(condition, load_module)
+class ModuleFinder:
+    def __init__(self, modules, loaded_modules, perform_reload):
+        self._modules = modules
+        self._loaded_modules = loaded_modules
+        self._perform_reload = perform_reload
+        self._stack_meter = StackMeter()
 
     def find_module(self, name, path=None):
-        if self.condition(name):
+        if name in self._modules:
             return self
+
+    def load_module(self, name):
+        module = self._modules[name]
+        sys.modules[name] = module  # restore the module back
+
+        if self._perform_reload:
+            with self._stack_meter as depth:
+                dprint("reloading", ('| '*depth) + '|--', name)
+                try:
+                    return module.__loader__.load_module(name)
+                except:
+                    if name in sys.modules:
+                        del sys.modules[name]  # to indicate an error
+                    raise
+        else:
+            if name not in self._loaded_modules:
+                dprint("No Reload", '---', name)
+            return module
