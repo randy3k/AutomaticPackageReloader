@@ -10,23 +10,20 @@ from contextlib import contextmanager
 from .stack_meter import StackMeter
 
 
-def trace(*args, tag="debug", fill=None, fill_width=60, **kwargs):
+def dprint(*args, fill=None, fill_width=60, **kwargs):
     if fill is not None:
         sep = str(kwargs.get('sep', ' '))
         caption = sep.join(args)
         args = "{0:{fill}<{width}}".format(caption and caption + sep,
                                            fill=fill, width=fill_width),
-    print("[{}]".format(tag), *args, **kwargs)
-
-
-dprint = functools.partial(trace, tag="Package Reloader")
+    print("[Package Reloader]", *args, **kwargs)
 
 
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name):
     if pkg_name not in sys.modules:
-        dprint("ERROR:", pkg_name, "is not loaded.")
+        dprint("error:", pkg_name, "is not loaded.")
         return
 
     main = sys.modules[pkg_name]
@@ -38,14 +35,16 @@ def reload_package(pkg_name):
     try:
         reload_modules(main, modules)
     except:
-        dprint("ERROR", fill='-')
-        reload_modules(main, modules, perform_reload=False)
+        dprint("reload failed.", fill='-')
         sublime.set_timeout(
             lambda: sublime.status_message("Fail to reload {}.".format(pkg_name)), 500)
         raise
-    finally:
-        ensure_loaded(main, modules)
 
+    check_missing(modules)
+    finalize_reload(main)
+
+
+def finalize_reload(main):
     # a hack to trigger automatic "reloading plugins"
     # this is needed to ensure TextCommand's and WindowCommand's are ready.
     dprint("installing dummy package")
@@ -72,14 +71,12 @@ def reload_package(pkg_name):
     sublime.set_timeout_async(remove_dummy, 100)
 
 
-def ensure_loaded(main, modules):
+def check_missing(modules):
     missing_modules = {name: module for name, module in modules.items()
                        if name not in sys.modules}
     if missing_modules:
-        for name, module in missing_modules:
-            sys.modules[name] = modules
-            dprint("Error:", "Bug!", "restored", name)
-        reload_plugin(main.__name__)
+        for name in missing_modules:
+            dprint("note:", name, "is not reloaded.")
 
 
 def reload_plugin(pkg_name):
@@ -90,36 +87,33 @@ def reload_plugin(pkg_name):
         sublime_plugin.reload_plugin(plugin)
 
 
-def reload_modules(main, modules, perform_reload=True):
+def reload_modules(main, modules):
 
-    if perform_reload:
-        sublime_plugin.unload_module(main)
-        for m in modules:
-            if m in sys.modules:
-                sublime_plugin.unload_module(modules[m])
+    sublime_plugin.unload_module(main)
+    for m in modules:
+        if m in sys.modules:
+            sublime_plugin.unload_module(modules[m])
 
     loaded_modules = dict(sys.modules)
     for name in loaded_modules:
         if name in modules:
             del sys.modules[name]
 
-    finder = ModuleFinder(modules, loaded_modules, perform_reload)
-    with intercepting_imports(finder), importing_fromlist_aggresively(modules):
+    with intercepting_imports(modules), \
+            importing_fromlist_aggresively(modules):
 
         reload_plugin(main.__name__)
-        module_names = sorted(name for name in modules)
-        for name in module_names:
-            importlib.import_module(name)
 
 
 @contextmanager
-def intercepting_imports(hook):
-    sys.meta_path.insert(0, hook)
+def intercepting_imports(modules):
+    finder = FilterFinder(modules)
+    sys.meta_path.insert(0, finder)
     try:
         yield
     finally:
-        if hook in sys.meta_path:
-            sys.meta_path.remove(hook)
+        if finder in sys.meta_path:
+            sys.meta_path.remove(finder)
 
 
 @contextmanager
@@ -148,11 +142,9 @@ def importing_fromlist_aggresively(modules):
         builtins.__import__ = orig___import__
 
 
-class ModuleFinder:
-    def __init__(self, modules, loaded_modules, perform_reload):
+class FilterFinder:
+    def __init__(self, modules):
         self._modules = modules
-        self._loaded_modules = loaded_modules
-        self._perform_reload = perform_reload
         self._stack_meter = StackMeter()
 
     def find_module(self, name, path=None):
@@ -162,17 +154,11 @@ class ModuleFinder:
     def load_module(self, name):
         module = self._modules[name]
         sys.modules[name] = module  # restore the module back
-
-        if self._perform_reload:
-            with self._stack_meter as depth:
-                dprint("reloading", ('| '*depth) + '|--', name)
-                try:
-                    return module.__loader__.load_module(name)
-                except:
-                    if name in sys.modules:
-                        del sys.modules[name]  # to indicate an error
-                    raise
-        else:
-            if name not in self._loaded_modules:
-                dprint("No Reload", '---', name)
-            return module
+        with self._stack_meter as depth:
+            dprint("reloading", ('| '*depth) + '|--', name)
+            try:
+                return module.__loader__.load_module(name)
+            except:
+                if name in sys.modules:
+                    del sys.modules[name]  # to indicate an error
+                raise
