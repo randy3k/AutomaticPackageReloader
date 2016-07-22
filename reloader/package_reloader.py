@@ -84,13 +84,10 @@ def ensure_loaded(main, modules):
 
 def reload_plugin(pkg_name):
     pkg_path = os.path.join(os.path.realpath(sublime.packages_path()), pkg_name)
-    if os.path.exists(os.path.join(pkg_path, "__init__.py")):
-        sublime_plugin.reload_plugin(pkg_name)
-    else:
-        plugins = [pkg_name + "." + os.path.splitext(f)[0]
-                   for f in os.listdir(pkg_path) if f.endswith(".py")]
-        for plugin in plugins:
-            sublime_plugin.reload_plugin(plugin)
+    plugins = [pkg_name + "." + os.path.splitext(f)[0]
+               for f in os.listdir(pkg_path) if f.endswith(".py")]
+    for plugin in plugins:
+        sublime_plugin.reload_plugin(plugin)
 
 
 def reload_modules(main, modules, perform_reload=True):
