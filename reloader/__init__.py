@@ -1,1 +1,2 @@
-from .package_reloader import reload_package
+from .reloader import reload_package
+from .progress_bar import ProgressBar

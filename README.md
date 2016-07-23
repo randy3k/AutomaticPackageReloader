@@ -10,7 +10,7 @@ reloading the package without the need of reopening ST.
 To reload the package in the current window, use `Package Reloader: Reload`.
 
 To activate reload on saving a `*py` file, use `Package Reloader: Toggle Reload On Save`.
-Package Reloader will guess the package name from the file path in order to remove the submodules
+Package Reloader will guess the package name from the file path in order to reload the submodules
 and to reload the package.
 
 ![](shot.png)

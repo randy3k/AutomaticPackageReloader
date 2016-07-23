@@ -1,6 +1,7 @@
 import sublime
 import sublime_plugin
 import os
+import threading
 import builtins
 import functools
 import importlib
@@ -33,20 +34,33 @@ def reload_package(pkg_name):
     modules = {name: module for name, module in sys.modules.items()
                if name.startswith(pkg_name + ".")}
     try:
-        reload_modules(main, modules)
+        sublime_plugin.unload_module(main)
+        for m in modules:
+            if m in sys.modules:
+                sublime_plugin.unload_module(modules[m])
+
+        loaded_modules = dict(sys.modules)
+        for name in loaded_modules:
+            if name in modules:
+                del sys.modules[name]
+
+        with intercepting_imports(modules), \
+                importing_fromlist_aggresively(modules):
+
+            reload_plugin(main.__name__)
+            reload_missing(modules)
     except:
         dprint("reload failed.", fill='-')
-        sublime.set_timeout(
-            lambda: sublime.status_message("Fail to reload {}.".format(pkg_name)), 500)
         raise
+    load_dummy()
+    dprint("end", fill='-')
 
-    check_missing(modules)
-    finalize_reload(main)
 
-
-def finalize_reload(main):
-    # a hack to trigger automatic "reloading plugins"
-    # this is needed to ensure TextCommand's and WindowCommand's are ready.
+def load_dummy():
+    """
+    a hack to trigger automatic "reloading plugins"
+    this is needed to ensure TextCommand's and WindowCommand's are ready.
+    """
     dprint("installing dummy package")
     dummy = "_dummy_package"
     dummy_py = os.path.join(sublime.packages_path(), "%s.py" % dummy)
@@ -59,24 +73,34 @@ def finalize_reload(main):
                 os.unlink(dummy_py)
             after_remove_dummy()
         else:
-            sublime.set_timeout_async(remove_dummy, 100)
+            threading.Timer(0.1, remove_dummy).start()
+
+    condition = threading.Condition()
 
     def after_remove_dummy():
         if dummy not in sys.modules:
-            sublime.status_message("{} reloaded.".format(main.__name__))
-            dprint("end", fill='-')
+            condition.acquire()
+            condition.notify()
+            condition.release()
         else:
-            sublime.set_timeout_async(after_remove_dummy, 100)
+            threading.Timer(0.1, after_remove_dummy).start()
 
-    sublime.set_timeout_async(remove_dummy, 100)
+    threading.Timer(0.1, remove_dummy).start()
+    condition.acquire()
+    condition.wait()
+    condition.release()
 
 
-def check_missing(modules):
+def reload_missing(modules):
     missing_modules = {name: module for name, module in modules.items()
                        if name not in sys.modules}
     if missing_modules:
         for name in missing_modules:
-            dprint("note:", name, "is not reloaded.")
+            dprint("note:", name, "is missing")
+            try:
+                importlib.import_module(name)
+            except:
+                dprint("note:", "fail to reload", name)
 
 
 def reload_plugin(pkg_name):
@@ -85,24 +109,6 @@ def reload_plugin(pkg_name):
                for f in os.listdir(pkg_path) if f.endswith(".py")]
     for plugin in plugins:
         sublime_plugin.reload_plugin(plugin)
-
-
-def reload_modules(main, modules):
-
-    sublime_plugin.unload_module(main)
-    for m in modules:
-        if m in sys.modules:
-            sublime_plugin.unload_module(modules[m])
-
-    loaded_modules = dict(sys.modules)
-    for name in loaded_modules:
-        if name in modules:
-            del sys.modules[name]
-
-    with intercepting_imports(modules), \
-            importing_fromlist_aggresively(modules):
-
-        reload_plugin(main.__name__)
 
 
 @contextmanager

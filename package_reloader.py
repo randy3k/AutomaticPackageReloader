@@ -1,7 +1,7 @@
 import sublime_plugin
 import sublime
 import os
-from .reloader import reload_package
+from .reloader import reload_package, ProgressBar
 
 
 def expand_folder(folder, project_file):
@@ -35,6 +35,9 @@ class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
 class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
 
     def run(self, pkg_name=None):
+        sublime.set_timeout_async(lambda: self.run_async(pkg_name))
+
+    def run_async(self, pkg_name=None):
         spp = os.path.realpath(sublime.packages_path())
 
         if not pkg_name:
@@ -53,4 +56,14 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 pkg_name = os.path.realpath(path).replace(spp, "").split(os.sep)[1]
 
         if pkg_name:
-            sublime.set_timeout_async(lambda: reload_package(pkg_name))
+
+            progress_bar = ProgressBar("Reloading %s" % pkg_name)
+            progress_bar.start()
+            try:
+                reload_package(pkg_name)
+            except:
+                sublime.status_message("Fail to reload {}.".format(pkg_name))
+                raise
+            finally:
+                progress_bar.stop()
+            sublime.status_message("{} reloaded.".format(pkg_name))
