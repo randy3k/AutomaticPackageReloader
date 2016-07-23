@@ -2,6 +2,7 @@ import sublime_plugin
 import sublime
 import os
 from .reloader import reload_package, ProgressBar
+import traceback
 
 
 def expand_folder(folder, project_file):
@@ -26,7 +27,7 @@ class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
 
     def run(self):
         package_reloader_settings = sublime.load_settings("package_reloader.sulime-settings")
-        reload_on_save = not package_reloader_settings.get("reload_on_save", False)
+        reload_on_save = not package_reloader_settings.get("reload_on_save")
         package_reloader_settings.set("reload_on_save", reload_on_save)
         onoff = "on" if reload_on_save else "off"
         sublime.status_message("Package Reloader: Reload on Save is %s." % onoff)
@@ -56,14 +57,25 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 pkg_name = os.path.realpath(path).replace(spp, "").split(os.sep)[1]
 
         if pkg_name:
-
+            pr_settings = sublime.load_settings("package_reloader.sublime-settings")
+            open_console = pr_settings.get("open_console")
+            close_console_on_success = pr_settings.get("close_console_on_success")
             progress_bar = ProgressBar("Reloading %s" % pkg_name)
             progress_bar.start()
+
+            console_opened = self.window.active_panel() == "console"
+            if not console_opened and open_console:
+                self.window.run_command("show_panel", {"panel": "console"})
             try:
                 reload_package(pkg_name)
             except:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
-                raise
+                traceback.print_exc()
+                return
             finally:
                 progress_bar.stop()
+
+            if not console_opened and close_console_on_success:
+                self.window.run_command("hide_panel", {"panel": "console"})
+
             sublime.status_message("{} reloaded.".format(pkg_name))

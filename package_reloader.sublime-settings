@@ -1,3 +1,5 @@
 {
+    "open_console": true,
+    "close_console_on_success": true,
     "reload_on_save": false
 }
