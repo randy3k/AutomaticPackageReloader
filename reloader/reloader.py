@@ -35,15 +35,10 @@ def reload_package(pkg_name):
     modules.update({name: module for name, module in sys.modules.items()
                     if name.startswith(pkg_name + ".")})
     try:
-        sublime_plugin.unload_module(main)
         for m in modules:
             if m in sys.modules:
                 sublime_plugin.unload_module(modules[m])
-
-        loaded_modules = dict(sys.modules)
-        for name in loaded_modules:
-            if name in modules:
-                del sys.modules[name]
+                del sys.modules[m]
 
         with intercepting_imports(modules), \
                 importing_fromlist_aggresively(modules):
