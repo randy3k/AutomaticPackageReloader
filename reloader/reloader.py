@@ -34,12 +34,12 @@ def reload_package(pkg_name):
     modules = {main.__name__: main}
     modules.update({name: module for name, module in sys.modules.items()
                     if name.startswith(pkg_name + ".")})
-    try:
-        for m in modules:
-            if m in sys.modules:
-                sublime_plugin.unload_module(modules[m])
-                del sys.modules[m]
+    for m in modules:
+        if m in sys.modules:
+            sublime_plugin.unload_module(modules[m])
+            del sys.modules[m]
 
+    try:
         with intercepting_imports(modules), \
                 importing_fromlist_aggresively(modules):
 
@@ -48,6 +48,7 @@ def reload_package(pkg_name):
     except:
         dprint("reload failed.", fill='-')
         raise
+
     load_dummy()
     dprint("end", fill='-')
 
@@ -94,13 +95,13 @@ def reload_missing(modules):
     missing_modules = {name: module for name, module in modules.items()
                        if name not in sys.modules}
     if missing_modules:
-        dprint("reload the missing modules")
+        dprint("reload missing modules")
         for name in missing_modules:
-            dprint("reloading the missing module:", name)
+            dprint("reloading missing module", name)
             try:
                 importlib.import_module(name)
             except:
-                dprint("error:", "fail to reload", name)
+                dprint("fail to reload", name)
 
 
 def reload_plugin(pkg_name):
