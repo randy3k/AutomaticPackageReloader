@@ -88,7 +88,7 @@ def load_dummy():
 
     threading.Timer(0.1, remove_dummy).start()
     condition.acquire()
-    condition.wait()
+    condition.wait(30)  # 30 seconds should be enough for all regular usages
     condition.release()
 
 
