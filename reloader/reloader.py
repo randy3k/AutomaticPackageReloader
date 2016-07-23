@@ -31,8 +31,9 @@ def reload_package(pkg_name):
 
     dprint("begin", fill='=')
 
-    modules = {name: module for name, module in sys.modules.items()
-               if name.startswith(pkg_name + ".")}
+    modules = {main.__name__: main}
+    modules.update({name: module for name, module in sys.modules.items()
+                    if name.startswith(pkg_name + ".")})
     try:
         sublime_plugin.unload_module(main)
         for m in modules:
@@ -95,12 +96,13 @@ def reload_missing(modules):
     missing_modules = {name: module for name, module in modules.items()
                        if name not in sys.modules}
     if missing_modules:
+        dprint("reload the missing modules")
         for name in missing_modules:
-            dprint("note:", name, "is missing")
+            dprint("reloading the missing module:", name)
             try:
                 importlib.import_module(name)
             except:
-                dprint("note:", "fail to reload", name)
+                dprint("error:", "fail to reload", name)
 
 
 def reload_plugin(pkg_name):
