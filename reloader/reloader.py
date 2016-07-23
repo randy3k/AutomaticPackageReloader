@@ -67,24 +67,27 @@ def load_dummy():
     dummy_py = os.path.join(sublime.packages_path(), "%s.py" % dummy)
     open(dummy_py, "w").close()
 
-    def remove_dummy():
+    def remove_dummy(trial=0):
         if dummy in sys.modules:
             dprint("removing dummy package")
             if os.path.exists(dummy_py):
                 os.unlink(dummy_py)
             after_remove_dummy()
+        elif trial < 300:
+            threading.Timer(0.1, lambda: remove_dummy(trial+1)).start()
         else:
-            threading.Timer(0.1, remove_dummy).start()
+            if os.path.exists(dummy_py):
+                os.unlink(dummy_py)
 
     condition = threading.Condition()
 
-    def after_remove_dummy():
+    def after_remove_dummy(trial=0):
         if dummy not in sys.modules:
             condition.acquire()
             condition.notify()
             condition.release()
-        else:
-            threading.Timer(0.1, after_remove_dummy).start()
+        elif trial < 300:
+            threading.Timer(0.1, lambda: after_remove_dummy(trial+1)).start()
 
     threading.Timer(0.1, remove_dummy).start()
     condition.acquire()
