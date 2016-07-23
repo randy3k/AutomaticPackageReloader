@@ -70,8 +70,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 reload_package(pkg_name)
             except:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
-                traceback.print_exc()
-                return
+                raise
             finally:
                 progress_bar.stop()
 
