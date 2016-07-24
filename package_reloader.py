@@ -2,7 +2,6 @@ import sublime_plugin
 import sublime
 import os
 from .reloader import reload_package, ProgressBar
-import traceback
 
 
 def expand_folder(folder, project_file):
