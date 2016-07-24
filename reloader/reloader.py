@@ -22,7 +22,7 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
-def reload_package(pkg_name):
+def reload_package(pkg_name, dummy=True):
     if pkg_name not in sys.modules:
         dprint("error:", pkg_name, "is not loaded.")
         return
@@ -48,8 +48,8 @@ def reload_package(pkg_name):
     except:
         dprint("reload failed.", fill='-')
         raise
-
-    load_dummy()
+    if dummy:
+        load_dummy()
     dprint("end", fill='-')
 
 
