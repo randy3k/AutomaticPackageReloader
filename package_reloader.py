@@ -4,14 +4,6 @@ import os
 from .reloader import reload_package, ProgressBar
 
 
-def expand_folder(folder, project_file):
-    if project_file:
-        root = os.path.dirname(project_file)
-        if not os.path.isabs(folder):
-            folder = os.path.abspath(os.path.join(root, folder))
-    return folder
-
-
 class PackageReloaderListener(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
@@ -49,11 +41,12 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                     pkg_name = file_name.replace(spp, "").split(os.sep)[1]
 
         if not pkg_name:
-            pd = self.window.project_data()
-            if pd and "folders" in pd and pd["folders"]:
-                folder = pd["folders"][0].get("path", "")
-                path = expand_folder(folder, self.window.project_file_name())
-                pkg_name = os.path.realpath(path).replace(spp, "").split(os.sep)[1]
+            folders = sublime.active_window().folders()
+            if folders and len(folders) > 0:
+                pkg_name = os.path.basename(os.path.realpath(folders[0]))
+            else:
+                project_file_name = sublime.active_window().project_file_name()
+                pkg_name = os.path.splitext(os.path.basename(project_file_name))[0]
 
         if pkg_name:
             pr_settings = sublime.load_settings("package_reloader.sublime-settings")
