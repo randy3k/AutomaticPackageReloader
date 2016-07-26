@@ -5,6 +5,10 @@ ST multiple times when developing a package since ST doesn't reload all the
 submodules of a package when the files are edited. This tiny package helps in
 reloading the package without the need of reopening ST.
 
+### Installation
+
+[Package Control](https://packagecontrol.io/) please.
+
 ### Usage
 
 To reload the package in the current window, use `Package Reloader: Reload`.
