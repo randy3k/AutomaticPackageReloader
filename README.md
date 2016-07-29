@@ -1,4 +1,4 @@
-### Package Reloader
+# Package Reloader
 
 Sublime Text package developers may find themselves have to close and re-open
 ST multiple times when developing a package since ST doesn't reload all the
