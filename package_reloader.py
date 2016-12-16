@@ -8,10 +8,17 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
         if view.is_scratch() or view.settings().get('is_widget'):
-            return False
-        package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
-        if package_reloader_settings.get("reload_on_save"):
-            sublime.set_timeout_async(view.window().run_command("package_reloader_reload"))
+            return
+        file_name = view.file_name()
+        if not file_name:
+            return
+
+        file_name = os.path.realpath(file_name)
+        spp = os.path.realpath(sublime.packages_path())
+        if file_name and file_name.endswith(".py") and spp in file_name:
+            package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
+            if package_reloader_settings.get("reload_on_save"):
+                sublime.set_timeout_async(view.window().run_command("package_reloader_reload"))
 
 
 class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
