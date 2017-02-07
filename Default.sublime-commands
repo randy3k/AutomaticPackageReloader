@@ -1,10 +1,10 @@
 [
     {
-        "caption": "Package Reloader: Reload",
+        "caption": "Automatic Package Reloader: Reload",
         "command": "package_reloader_reload"
     },
     {
-        "caption": "Package Reloader: Toggle Reload on Save",
+        "caption": "Automatic Package Reloader: Toggle Reload on Save",
         "command": "package_reloader_toggle_reload_on_save"
     }
 ]

@@ -1,4 +1,4 @@
-# Package Reloader
+# Automatic Package Reloader
 
 Sublime Text package developers may find themselves have to close and re-open
 ST multiple times when developing a package since ST doesn't reload all the
@@ -11,9 +11,9 @@ reloading the package without the need of reopening ST.
 
 ### Usage
 
-To reload the package in the current window, use `Package Reloader: Reload`.
+To reload the package in the current window, use `Automatic Package Reloader: Reload`.
 
-To activate reload on saving a `*py` file, use `Package Reloader: Toggle Reload On Save`.
+To activate reload on saving a `*py` file, use ` Automatic Package Reloader: Toggle Reload On Save`.
 Package Reloader will guess the package name from the file path in order to reload the submodules
 and to reload the package.
 
