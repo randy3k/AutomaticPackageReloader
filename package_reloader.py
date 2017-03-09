@@ -37,15 +37,9 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         sublime.set_timeout_async(lambda: self.run_async(pkg_name))
 
     def run_async(self, pkg_name=None):
-        spp = os.path.realpath(sublime.packages_path())
-
         if not pkg_name:
             view = self.window.active_view()
-            file_name = view.file_name()
-            if file_name:
-                file_name = os.path.realpath(file_name)
-                if file_name and file_name.endswith(".py") and spp in file_name:
-                    pkg_name = file_name.replace(spp, "").split(os.sep)[1]
+            pkg_name = self.extract_from_file_name(view.file_name())
 
         if not pkg_name:
             folders = sublime.active_window().folders()
@@ -77,3 +71,18 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 self.window.run_command("hide_panel", {"panel": "console"})
 
             sublime.status_message("{} reloaded.".format(pkg_name))
+
+    def extract_from_file_name(self, file_name):
+        if not file_name:
+            return None
+
+        spp = os.path.realpath(sublime.packages_path())
+
+        real_file_name = os.path.realpath(file_name)
+        if real_file_name.endswith(".py") and spp in real_file_name:
+            return real_file_name.replace(spp, "").split(os.sep)[1]
+
+        if file_name.endswith(".py") and spp in file_name:
+            return file_name.replace(spp, "").split(os.sep)[1]
+
+        return None
