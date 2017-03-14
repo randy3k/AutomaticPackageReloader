@@ -76,13 +76,13 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         if not file_name:
             return None
 
-        spp = os.path.realpath(sublime.packages_path())
-
+        spp = sublime.packages_path()
+        real_spp = os.path.realpath(spp)
         real_file_name = os.path.realpath(file_name)
-        if real_file_name.endswith(".py") and spp in real_file_name:
-            return real_file_name.replace(spp, "").split(os.sep)[1]
 
-        if file_name.endswith(".py") and spp in file_name:
-            return file_name.replace(spp, "").split(os.sep)[1]
+        for d in (real_spp, spp):
+            for f in (real_file_name, file_name):
+                if f.endswith(".py") and d in f:
+                    return f.replace(d, "").split(os.sep)[1]
 
         return None
