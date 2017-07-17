@@ -1,6 +1,6 @@
 [
     {
-        "caption": "Automatic Package Reloader: Reload",
+        "caption": "Automatic Package Reloader: Reload Current Project",
         "command": "package_reloader_reload"
     },
     {
