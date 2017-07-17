@@ -6,5 +6,14 @@
     {
         "caption": "Automatic Package Reloader: Toggle Reload on Save",
         "command": "package_reloader_toggle_reload_on_save"
+    },
+    {
+        "caption": "Preference: Automatic Package Reloader Settings",
+        "command": "edit_settings",
+        "args":
+        {
+            "base_file": "${packages}/AutomaticPackageReloader/package_reloader.sublime-settings",
+            "default": "{\n\t$0\n}\n"
+        }
     }
 ]
