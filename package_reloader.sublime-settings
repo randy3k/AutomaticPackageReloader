@@ -1,5 +1,6 @@
 {
-    "open_console": true,
+    "open_console": false,
+    "open_console_on_failure": true,
     "close_console_on_success": true,
     "reload_on_save": false
 }

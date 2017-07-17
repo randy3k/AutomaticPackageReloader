@@ -52,7 +52,9 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         if pkg_name:
             pr_settings = sublime.load_settings("package_reloader.sublime-settings")
             open_console = pr_settings.get("open_console")
+            open_console_on_failure = pr_settings.get("open_console_on_failure")
             close_console_on_success = pr_settings.get("close_console_on_success")
+
             progress_bar = ProgressBar("Reloading %s" % pkg_name)
             progress_bar.start()
 
@@ -63,6 +65,8 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 reload_package(pkg_name)
             except:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
+                if open_console_on_failure:
+                    self.window.run_command("show_panel", {"panel": "console"})
                 raise
             finally:
                 progress_bar.stop()
