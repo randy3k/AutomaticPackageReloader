@@ -1,6 +1,6 @@
 {
-    "open_console": false,
-    "open_console_on_failure": true,
-    "close_console_on_success": true,
-    "reload_on_save": false
+    "open_console": false, // always open console when reloading a package
+    "open_console_on_failure": true, //  only relevent when "open_console" is false
+    "close_console_on_success": true, // only relevent when "open_console" is true
+    "reload_on_save": false // the default behaviour when saving a document, cannot override per view
 }
