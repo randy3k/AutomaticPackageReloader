@@ -71,7 +71,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             finally:
                 progress_bar.stop()
 
-            if not console_opened and close_console_on_success:
+            if close_console_on_success:
                 self.window.run_command("hide_panel", {"panel": "console"})
 
             sublime.status_message("{} reloaded.".format(pkg_name))

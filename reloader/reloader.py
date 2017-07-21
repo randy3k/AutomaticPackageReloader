@@ -138,8 +138,7 @@ def importing_fromlist_aggresively(modules):
                 if isinstance(getattr(module, x, None), types.ModuleType):
                     from_name = '{}.{}'.format(module.__name__, x)
                     if from_name in modules:
-                        modules[from_name].__loader__.load_module(from_name)
-                        # importlib.import_module(from_name)
+                        importlib.import_module(from_name)
         return module
 
     builtins.__import__ = __import__

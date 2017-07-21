@@ -4,7 +4,7 @@
     //  only relevent when "open_console" is false
     "open_console_on_failure": true,
     // only relevent when "open_console" is true
-    "close_console_on_success": true,
-    // the default behaviour when saving a document, cannot override per session
+    "close_console_on_success": false,
+    // the default behaviour when saving a document, can be overrided per session
     "reload_on_save": false
 }
