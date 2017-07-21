@@ -44,10 +44,12 @@ def reload_package(pkg_name, dummy=True):
                 importing_fromlist_aggresively(modules):
 
             reload_plugin(main.__name__)
-            reload_missing(modules)
     except:
         dprint("reload failed.", fill='-')
+        reload_missing(modules)
         raise
+
+    reload_missing(modules)
     if dummy:
         load_dummy()
     dprint("end", fill='-')
@@ -98,10 +100,7 @@ def reload_missing(modules):
         dprint("reload missing modules")
         for name in missing_modules:
             dprint("reloading missing module", name)
-            try:
-                importlib.import_module(name)
-            except:
-                dprint("fail to reload", name)
+            sys.modules[name] = modules[name]
 
 
 def reload_plugin(pkg_name):
@@ -139,7 +138,8 @@ def importing_fromlist_aggresively(modules):
                 if isinstance(getattr(module, x, None), types.ModuleType):
                     from_name = '{}.{}'.format(module.__name__, x)
                     if from_name in modules:
-                        importlib.import_module(from_name)
+                        modules[from_name].__loader__.load_module(from_name)
+                        # importlib.import_module(from_name)
         return module
 
     builtins.__import__ = __import__
