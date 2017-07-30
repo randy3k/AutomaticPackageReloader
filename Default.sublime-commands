@@ -8,7 +8,7 @@
         "command": "package_reloader_toggle_reload_on_save"
     },
     {
-        "caption": "Preference: Automatic Package Reloader Settings",
+        "caption": "Preferences: Automatic Package Reloader Settings",
         "command": "edit_settings",
         "args":
         {
