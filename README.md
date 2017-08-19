@@ -24,6 +24,20 @@ the settings.
 
 ![](shot.png)
 
+### Add `Reload Current Package` build
+
+It is recommended to add the following in your `.sublime-project` file so that <kbd>c</kbd>+<kbd>b</kbd> would invoke the reload action.
+
+```
+    "build_systems":
+    [
+      {
+        "name": "Reload Current Package",
+        "target": "package_reloader_reload",
+      }
+    ]
+``` 
+
 
 ### Credits
 This is derived from the [code](https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py) of Eldar Abusalimov.

@@ -33,21 +33,31 @@ class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
 
 class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
 
+    def is_enabled(self):
+        return self.current_package_name is not None
+
+    @property
+    def current_package_name(self):
+        view = self.window.active_view()
+        spp = os.path.realpath(sublime.packages_path())
+        if view and view.file_name():
+            file_path = os.path.realpath(view.file_name())
+            if file_path.endswith(".py") and file_path.startswith(spp):
+                return file_path[len(spp):].split(os.sep)[1]
+
+        folders = self.window.folders()
+        if folders and len(folders) > 0:
+            first_folder = os.path.realpath(folders[0])
+            if first_folder.startswith(spp):
+                return os.path.basename(first_folder)
+
+        return None
+
     def run(self, pkg_name=None):
         sublime.set_timeout_async(lambda: self.run_async(pkg_name))
 
     def run_async(self, pkg_name=None):
-        if not pkg_name:
-            view = self.window.active_view()
-            pkg_name = self.extract_from_file_name(view.file_name())
-
-        if not pkg_name:
-            folders = sublime.active_window().folders()
-            if folders and len(folders) > 0:
-                pkg_name = os.path.basename(os.path.realpath(folders[0]))
-            else:
-                project_file_name = sublime.active_window().project_file_name()
-                pkg_name = os.path.splitext(os.path.basename(project_file_name))[0]
+        pkg_name = self.current_package_name
 
         if pkg_name:
             pr_settings = sublime.load_settings("package_reloader.sublime-settings")
@@ -75,18 +85,3 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 self.window.run_command("hide_panel", {"panel": "console"})
 
             sublime.status_message("{} reloaded.".format(pkg_name))
-
-    def extract_from_file_name(self, file_name):
-        if not file_name:
-            return None
-
-        spp = sublime.packages_path()
-        real_spp = os.path.realpath(spp)
-        real_file_name = os.path.realpath(file_name)
-
-        for d in (real_spp, spp):
-            for f in (real_file_name, file_name):
-                if f.endswith(".py") and d in f:
-                    return f.replace(d, "").split(os.sep)[1]
-
-        return None
