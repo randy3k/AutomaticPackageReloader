@@ -22,14 +22,15 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
-def reload_package(pkg_name, dummy=True):
+def reload_package(pkg_name, dummy=True, verbose=True):
     if pkg_name not in sys.modules:
         dprint("error:", pkg_name, "is not loaded.")
         return
 
     main = sys.modules[pkg_name]
 
-    dprint("begin", fill='=')
+    if verbose:
+        dprint("begin", fill='=')
 
     modules = {main.__name__: main}
     modules.update({name: module for name, module in sys.modules.items()
@@ -40,38 +41,42 @@ def reload_package(pkg_name, dummy=True):
             del sys.modules[m]
 
     try:
-        with intercepting_imports(modules), \
+        with intercepting_imports(modules, verbose), \
                 importing_fromlist_aggresively(modules):
 
             reload_plugin(main.__name__)
     except:
         dprint("reload failed.", fill='-')
-        reload_missing(modules)
+        reload_missing(modules, verbose)
         raise
 
     if dummy:
-        load_dummy()
-    dprint("end", fill='-')
+        load_dummy(verbose)
+
+    if verbose:
+        dprint("end", fill='-')
 
 
-def load_dummy():
+def load_dummy(verbose):
     """
     a hack to trigger automatic "reloading plugins"
     this is needed to ensure TextCommand's and WindowCommand's are ready.
     """
-    dprint("installing dummy package")
+    if verbose:
+        dprint("installing dummy package")
     dummy = "_dummy_package"
     dummy_py = os.path.join(sublime.packages_path(), "%s.py" % dummy)
     open(dummy_py, "w").close()
 
     def remove_dummy(trial=0):
         if dummy in sys.modules:
-            dprint("removing dummy package")
+            if verbose:
+                dprint("removing dummy package")
             if os.path.exists(dummy_py):
                 os.unlink(dummy_py)
             after_remove_dummy()
         elif trial < 300:
-            threading.Timer(0.1, lambda: remove_dummy(trial+1)).start()
+            threading.Timer(0.1, lambda: remove_dummy(trial + 1)).start()
         else:
             if os.path.exists(dummy_py):
                 os.unlink(dummy_py)
@@ -84,7 +89,7 @@ def load_dummy():
             condition.notify()
             condition.release()
         elif trial < 300:
-            threading.Timer(0.1, lambda: after_remove_dummy(trial+1)).start()
+            threading.Timer(0.1, lambda: after_remove_dummy(trial + 1)).start()
 
     threading.Timer(0.1, remove_dummy).start()
     condition.acquire()
@@ -92,13 +97,15 @@ def load_dummy():
     condition.release()
 
 
-def reload_missing(modules):
+def reload_missing(modules, verbose):
     missing_modules = {name: module for name, module in modules.items()
                        if name not in sys.modules}
     if missing_modules:
-        dprint("reload missing modules")
+        if verbose:
+            dprint("reload missing modules")
         for name in missing_modules:
-            dprint("reloading missing module", name)
+            if verbose:
+                dprint("reloading missing module", name)
             sys.modules[name] = modules[name]
 
 
@@ -111,8 +118,8 @@ def reload_plugin(pkg_name):
 
 
 @contextmanager
-def intercepting_imports(modules):
-    finder = FilterFinder(modules)
+def intercepting_imports(modules, verbose):
+    finder = FilterFinder(modules, verbose)
     sys.meta_path.insert(0, finder)
     try:
         yield
@@ -148,9 +155,10 @@ def importing_fromlist_aggresively(modules):
 
 
 class FilterFinder:
-    def __init__(self, modules):
+    def __init__(self, modules, verbose):
         self._modules = modules
         self._stack_meter = StackMeter()
+        self._verbose = verbose
 
     def find_module(self, name, path=None):
         if name in self._modules:
@@ -160,7 +168,8 @@ class FilterFinder:
         module = self._modules[name]
         sys.modules[name] = module  # restore the module back
         with self._stack_meter as depth:
-            dprint("reloading", ('| '*depth) + '|--', name)
+            if self._verbose:
+                dprint("reloading", ('| ' * depth) + '|--', name)
             try:
                 return module.__loader__.load_module(name)
             except:
