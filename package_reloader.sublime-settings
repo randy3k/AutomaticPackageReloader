@@ -6,5 +6,7 @@
     // only relevent when "open_console" is true
     "close_console_on_success": false,
     // the default behaviour when saving a document, can be overrided per session
-    "reload_on_save": false
+    "reload_on_save": false,
+    // Enable verbose console messages.
+    "verbose": true
 }
