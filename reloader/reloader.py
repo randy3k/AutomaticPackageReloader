@@ -45,7 +45,7 @@ def reload_package(pkg_name, dummy=True, verbose=True):
                 importing_fromlist_aggresively(modules):
 
             reload_plugin(main.__name__)
-    except:
+    except Exception:
         dprint("reload failed.", fill='-')
         reload_missing(modules, verbose)
         raise
@@ -59,8 +59,9 @@ def reload_package(pkg_name, dummy=True, verbose=True):
 
 def load_dummy(verbose):
     """
-    a hack to trigger automatic "reloading plugins"
-    this is needed to ensure TextCommand's and WindowCommand's are ready.
+    Hack to trigger automatic "reloading plugins".
+
+    This is needed to ensure TextCommand's and WindowCommand's are ready.
     """
     if verbose:
         dprint("installing dummy package")
@@ -172,7 +173,7 @@ class FilterFinder:
                 dprint("reloading", ('| ' * depth) + '|--', name)
             try:
                 return module.__loader__.load_module(name)
-            except:
+            except Exception:
                 if name in sys.modules:
                     del sys.modules[name]  # to indicate an error
                 raise
