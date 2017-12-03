@@ -44,7 +44,7 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         with intercepting_imports(modules, verbose), \
                 importing_fromlist_aggresively(modules):
 
-            reload_plugin(main.__name__)
+            reload_plugin(pkg_name)
     except Exception:
         dprint("reload failed.", fill='-')
         reload_missing(modules, verbose)
@@ -112,8 +112,8 @@ def reload_missing(modules, verbose):
 
 def reload_plugin(pkg_name):
     pkg_path = os.path.join(os.path.realpath(sublime.packages_path()), pkg_name)
-    plugins = [pkg_name + "." + os.path.splitext(f)[0]
-               for f in os.listdir(pkg_path) if f.endswith(".py")]
+    plugins = [pkg_name + "." + os.path.splitext(file)[0]
+               for file in os.listdir(pkg_path) if file.endswith(".py")]
     for plugin in plugins:
         sublime_plugin.reload_plugin(plugin)
 
