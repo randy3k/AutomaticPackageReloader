@@ -112,8 +112,8 @@ def reload_missing(modules, verbose):
 
 def reload_plugin(pkg_name):
     pkg_path = os.path.join(os.path.realpath(sublime.packages_path()), pkg_name)
-    plugins = [pkg_name + "." + os.path.splitext(file)[0]
-               for file in os.listdir(pkg_path) if file.endswith(".py")]
+    plugins = [pkg_name + "." + os.path.splitext(file_name)[0]
+               for file_name in os.listdir(pkg_path) if file_name.endswith(".py")]
     for plugin in plugins:
         sublime_plugin.reload_plugin(plugin)
 
