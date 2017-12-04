@@ -1,8 +1,15 @@
 import sublime_plugin
 import sublime
 import os
-from .reloader import reload_package, ProgressBar
 from glob import glob
+import re
+
+from .reloader import reload_package, ProgressBar
+
+
+def casedpath(path):
+    r = glob(re.sub(r'([^:/\\])(?=[/\\]|$)', r'[\1]', path))
+    return r and r[0] or path
 
 
 class PackageReloaderListener(sublime_plugin.EventListener):
@@ -42,33 +49,10 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         view = self.window.active_view()
         spp = os.path.realpath(sublime.packages_path())
         if view and view.file_name():
-            file_path = os.path.realpath(view.file_name())
+            # path on Windows may not be properly cased
+            # https://github.com/randy3k/AutomaticPackageReloader/issues/10
+            file_path = casedpath(os.path.realpath(view.file_name()))
             if file_path.endswith(".py") and file_path.startswith(spp):
-
-                def get_actual_filename(name):
-                    """
-                        In Python, how can I get the correctly-cased path for a file?
-                        https://stackoverflow.com/questions/3692261/in-python-how-can-i-get-the-correctly-cased-path-for-a-file
-                    """
-                    sep = os.path.sep
-                    parts = os.path.normpath(name).split(sep)
-                    dirs = parts[0:-1]
-                    filename = parts[-1]
-                    if dirs[0] == os.path.splitdrive(name)[0]:
-                        test_name = [dirs[0].upper()]
-                    else:
-                        test_name = [sep + dirs[0]]
-                    for d in dirs[1:]:
-                        test_name += ["%s[%s]" % (d[:-1], d[-1])]
-                    path = glob(sep.join(test_name))[0]
-                    res = glob(sep.join((path, filename)))
-                    if not res:
-                        #File not found
-                        return None
-                    return res[0]
-
-                # https://github.com/randy3k/AutomaticPackageReloader/issues/10
-                file_path = get_actual_filename(file_path)
                 return file_path[len(spp):].split(os.sep)[1]
 
         folders = self.window.folders()
