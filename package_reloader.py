@@ -60,7 +60,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         if folders and len(folders) > 0:
             first_folder = os.path.realpath(folders[0])
             if first_folder.startswith(spp):
-                return os.path.basename(first_folder)
+                return os.path.basename(casedpath(first_folder))
 
         return None
 
