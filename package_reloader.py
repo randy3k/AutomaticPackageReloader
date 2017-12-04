@@ -57,7 +57,8 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         sublime.set_timeout_async(lambda: self.run_async(pkg_name))
 
     def run_async(self, pkg_name=None):
-        pkg_name = self.current_package_name
+        if not pkg_name:
+            pkg_name = self.current_package_name
 
         if pkg_name:
             pr_settings = sublime.load_settings("package_reloader.sublime-settings")
