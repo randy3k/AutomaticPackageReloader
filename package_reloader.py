@@ -84,7 +84,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 self.window.run_command("show_panel", {"panel": "console"})
             try:
                 reload_package(pkg_name, verbose=pr_settings.get('verbose'))
-            except:
+            except Exception:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
                 if open_console_on_failure:
                     self.window.run_command("show_panel", {"panel": "console"})
