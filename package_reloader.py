@@ -49,10 +49,11 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         view = self.window.active_view()
         spp = os.path.realpath(sublime.packages_path())
         if view and view.file_name():
-            # path on Windows may not be properly cased
-            # https://github.com/randy3k/AutomaticPackageReloader/issues/10
-            file_path = casedpath(os.path.realpath(view.file_name()))
+            file_path = os.path.realpath(view.file_name())
             if file_path.endswith(".py") and file_path.startswith(spp):
+                # path on Windows may not be properly cased
+                # https://github.com/randy3k/AutomaticPackageReloader/issues/10
+                file_path = casedpath(file_path)
                 return file_path[len(spp):].split(os.sep)[1]
 
         folders = self.window.folders()
