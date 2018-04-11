@@ -12,18 +12,25 @@ def casedpath(path):
     return r and r[0] or path
 
 
+def relative_to_spp(path):
+    spp = sublime.packages_path()
+    spp_real = os.path.realpath(spp)
+    for p in [path, os.path.realpath(path)]:
+        if p.startswith(spp + os.sep):
+            return p[len(spp):]
+        if p.startswith(spp_real + os.sep):
+            return p[len(spp_real):]
+    return None
+
+
 class PackageReloaderListener(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
         if view.is_scratch() or view.settings().get('is_widget'):
             return
         file_name = view.file_name()
-        if not file_name:
-            return
 
-        file_name = os.path.realpath(file_name)
-        spp = os.path.realpath(sublime.packages_path())
-        if file_name and file_name.endswith(".py") and spp in file_name:
+        if file_name and file_name.endswith(".py") and relative_to_spp(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
             if package_reloader_settings.get("reload_on_save"):
                 sublime.set_timeout_async(view.window().run_command("package_reloader_reload"))
@@ -47,20 +54,18 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
     @property
     def current_package_name(self):
         view = self.window.active_view()
-        spp = os.path.realpath(sublime.packages_path())
         if view and view.file_name():
-            file_path = os.path.realpath(view.file_name())
-            if file_path.endswith(".py") and file_path.startswith(spp):
-                # path on Windows may not be properly cased
-                # https://github.com/randy3k/AutomaticPackageReloader/issues/10
-                file_path = casedpath(file_path)
-                return file_path[len(spp):].split(os.sep)[1]
+            # path on Windows may not be properly cased
+            # https://github.com/randy3k/AutomaticPackageReloader/issues/10
+            file_path = relative_to_spp(casedpath(view.file_name()))
+            if file_path and file_path.endswith(".py"):
+                return file_path.split(os.sep)[1]
 
         folders = self.window.folders()
         if folders and len(folders) > 0:
-            first_folder = os.path.realpath(folders[0])
-            if first_folder.startswith(spp):
-                return os.path.basename(casedpath(first_folder))
+            first_folder = relative_to_spp(casedpath(folders[0]))
+            if first_folder:
+                return os.path.basename(first_folder)
 
         return None
 
