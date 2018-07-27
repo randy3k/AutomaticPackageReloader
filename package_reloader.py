@@ -7,6 +7,9 @@ import re
 from .reloader import reload_package, ProgressBar
 
 
+RELOADING = False
+
+
 def casedpath(path):
     # path on Windows may not be properly cased
     # https://github.com/randy3k/AutomaticPackageReloader/issues/10
@@ -73,6 +76,11 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         sublime.set_timeout_async(lambda: self.run_async(pkg_name))
 
     def run_async(self, pkg_name=None):
+        global RELOADING
+        if RELOADING:
+            print("Reloader is running.")
+            return
+
         if not pkg_name:
             pkg_name = self.current_package_name
 
@@ -89,6 +97,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             if not console_opened and open_console:
                 self.window.run_command("show_panel", {"panel": "console"})
             try:
+                RELOADING = True
                 reload_package(pkg_name, verbose=pr_settings.get('verbose'))
             except Exception:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
@@ -96,6 +105,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                     self.window.run_command("show_panel", {"panel": "console"})
                 raise
             finally:
+                RELOADING = False
                 progress_bar.stop()
 
             if close_console_on_success:
