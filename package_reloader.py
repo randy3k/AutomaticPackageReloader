@@ -19,11 +19,11 @@ def casedpath(path):
 
 def relative_to_spp(path):
     spp = sublime.packages_path()
-    spp_real = casedpath(os.path.realpath(spp))
-    for p in [path, casedpath(os.path.realpath(path))]:
-        for sp in [spp, spp_real]:
-            if p.startswith(sp + os.sep):
-                return p[len(sp):]
+    path = os.path.realpath(path)
+    for f in os.listdir(spp):
+        path2 = os.path.realpath(os.path.join(spp, f))
+        if path.startswith(path2+os.sep):
+            return os.sep + os.path.join(f, os.path.relpath(path, path2))
     return None
 
 
