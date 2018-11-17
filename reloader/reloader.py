@@ -20,25 +20,36 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
     print("[Package Reloader]", *args, **kwargs)
 
 
+def path_contains(a, b):
+    return a == b or b.startswith(a + os.sep)
+
+
 def get_package_modules(pkg_name):
-    installed_package_path = os.path.join(
-        sublime.installed_packages_path(),
-        pkg_name + '.sublime-package'
+    in_installed_path = functools.partial(
+        path_contains,
+        os.path.join(
+            sublime.installed_packages_path(),
+            pkg_name + '.sublime-package'
+        )
     )
-    package_path = os.path.join(sublime.packages_path(), pkg_name)
-    def path_matches(module):
-        file_path = getattr(module, '__file__', '')
+
+    in_package_path = functools.partial(
+        path_contains,
+        os.path.join(sublime.packages_path(), pkg_name)
+    )
+
+    def module_in_package(module):
+        file = getattr(module, '__file__', '')
+        paths = getattr(module, '__path__', ())
         return (
-            file_path == installed_package_path or
-            file_path.startswith(installed_package_path + os.sep) or
-            file_path == package_path or
-            file_path.startswith(package_path + os.sep)
+            in_installed_path(file) or any(map(in_installed_path, paths)) or
+            in_package_path(file) or any(map(in_package_path, paths))
         )
 
     return {
         name: module
         for name, module in sys.modules.items()
-        if path_matches(module)
+        if module_in_package(module)
     }
 
 # check the link for comments
