@@ -10,7 +10,16 @@ import types
 from contextlib import contextmanager
 from .stack_meter import StackMeter
 
-from package_control.package_manager import PackageManager
+
+try:
+    from package_control.package_manager import PackageManager
+
+    def is_dependency(pkg_name):
+        return PackageManager()._is_dependency(pkg_name)
+
+except ImportError:
+    def is_dependency(pkg_name):
+        return False
 
 
 def dprint(*args, fill=None, fill_width=60, **kwargs):
@@ -25,7 +34,7 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name, dummy=True, verbose=True):
-    if PackageManager()._is_dependency(pkg_name):
+    if is_dependency(pkg_name):
         reload_dependency(pkg_name)
         return
 
