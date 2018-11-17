@@ -7,8 +7,11 @@ import functools
 import importlib
 import sys
 import types
+import imp
 from contextlib import contextmanager
 from .stack_meter import StackMeter
+
+from package_control.package_manager import PackageManager
 
 
 def dprint(*args, fill=None, fill_width=60, **kwargs):
@@ -23,6 +26,10 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name, dummy=True, verbose=True):
+    if PackageManager()._is_dependency(pkg_name):
+        reload_dependency(pkg_name)
+        return
+
     if pkg_name not in sys.modules:
         dprint("error:", pkg_name, "is not loaded.")
         return
@@ -56,6 +63,18 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     if verbose:
         dprint("end", fill='-')
 
+
+def reload_dependency(dependency_name):
+    dependency_base = os.path.join(sublime.packages_path(), dependency_name) + os.sep
+
+    for module in sys.modules.values():
+        if getattr(module, '__file__', '').startswith(dependency_base):
+            imp.reload(module)
+
+    manager = PackageManager()
+    for package in manager.list_packages():
+        if dependency_name in manager.get_dependencies(package):
+            reload_package(package)
 
 def load_dummy(verbose):
     """
