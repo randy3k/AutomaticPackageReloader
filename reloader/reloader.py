@@ -7,7 +7,6 @@ import functools
 import importlib
 import sys
 import types
-import imp
 from contextlib import contextmanager
 from .stack_meter import StackMeter
 
@@ -67,9 +66,9 @@ def reload_package(pkg_name, dummy=True, verbose=True):
 def reload_dependency(dependency_name):
     dependency_base = os.path.join(sublime.packages_path(), dependency_name) + os.sep
 
-    for module in sys.modules.values():
+    for module in list(sys.modules.values()):
         if getattr(module, '__file__', '').startswith(dependency_base):
-            imp.reload(module)
+            del sys.modules[module.__name__]
 
     manager = PackageManager()
     for package in manager.list_packages():
