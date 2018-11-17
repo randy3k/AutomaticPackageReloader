@@ -21,12 +21,18 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 
 
 def get_package_modules(pkg_name):
-    package_base = os.path.join(sublime.packages_path(), pkg_name)
+    installed_package_path = os.path.join(
+        sublime.installed_packages_path(),
+        pkg_name + '.sublime-package'
+    )
+    package_path = os.path.join(sublime.packages_path(), pkg_name)
     def path_matches(module):
         file_path = getattr(module, '__file__', '')
         return (
-            file_path == package_base or
-            file_path.startswith(package_base + os.sep)
+            file_path == installed_package_path or
+            file_path.startswith(installed_package_path + os.sep) or
+            file_path == package_path or
+            file_path.startswith(package_path + os.sep)
         )
 
     return {
