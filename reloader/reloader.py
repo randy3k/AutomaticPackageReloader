@@ -20,6 +20,21 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
     print("[Package Reloader]", *args, **kwargs)
 
 
+def get_package_modules(pkg_name):
+    package_base = os.path.join(sublime.packages_path(), pkg_name)
+    def path_matches(module):
+        file_path = getattr(module, '__file__', '')
+        return (
+            file_path == package_base or
+            file_path.startswith(package_base + os.sep)
+        )
+
+    return {
+        name: module
+        for name, module in sys.modules.items()
+        if path_matches(module)
+    }
+
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name, dummy=True, verbose=True):
@@ -27,14 +42,11 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         dprint("error:", pkg_name, "is not loaded.")
         return
 
-    main = sys.modules[pkg_name]
-
     if verbose:
         dprint("begin", fill='=')
 
-    modules = {main.__name__: main}
-    modules.update({name: module for name, module in sys.modules.items()
-                    if name.startswith(pkg_name + ".")})
+    modules = get_package_modules(pkg_name)
+
     for m in modules:
         if m in sys.modules:
             sublime_plugin.unload_module(modules[m])
