@@ -11,6 +11,17 @@ from contextlib import contextmanager
 from .stack_meter import StackMeter
 
 
+try:
+    from package_control.package_manager import PackageManager
+
+    def is_dependency(pkg_name):
+        return PackageManager()._is_dependency(pkg_name)
+
+except ImportError:
+    def is_dependency(pkg_name):
+        return False
+
+
 def dprint(*args, fill=None, fill_width=60, **kwargs):
     if fill is not None:
         sep = str(kwargs.get('sep', ' '))
@@ -23,6 +34,10 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name, dummy=True, verbose=True):
+    if is_dependency(pkg_name):
+        reload_dependency(pkg_name, dummy, verbose)
+        return
+
     if pkg_name not in sys.modules:
         dprint("error:", pkg_name, "is not loaded.")
         return
@@ -56,6 +71,29 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     if verbose:
         dprint("end", fill='-')
 
+
+def reload_dependency(dependency_name, dummy=True, verbose=True):
+    """
+    Package Control dependencies aren't regular packages, so we don't want to
+    call `sublime_plugin.unload_module` or `sublime_plugin.reload_plugin`.
+    Instead, we manually unload all of the modules in the dependency and then
+    `reload_package` any packages that use that dependency. (We have to manually
+    unload the dependency's modules because calling `reload_package` on a
+    dependent module will not unload the dependency.)
+    """
+    dependency_base = os.path.join(sublime.packages_path(), dependency_name) + os.sep
+
+    for module in list(sys.modules.values()):
+        if getattr(module, '__file__', '').startswith(dependency_base):
+            del sys.modules[module.__name__]
+
+    manager = PackageManager()
+    for package in manager.list_packages():
+        if dependency_name in manager.get_dependencies(package):
+            reload_package(package, dummy=False, verbose=verbose)
+
+    if dummy:
+        load_dummy(verbose)
 
 def load_dummy(verbose):
     """
