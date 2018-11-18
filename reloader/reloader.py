@@ -110,11 +110,8 @@ def reload_dependency(dependency_name, dummy=True, verbose=True):
     unload the dependency's modules because calling `reload_package` on a
     dependent module will not unload the dependency.)
     """
-    dependency_base = os.path.join(sublime.packages_path(), dependency_name) + os.sep
-
-    for module in list(sys.modules.values()):
-        if getattr(module, '__file__', '').startswith(dependency_base):
-            del sys.modules[module.__name__]
+    for name in get_package_modules(dependency_name):
+        del sys.modules[name]
 
     manager = PackageManager()
     for package in manager.list_packages():
