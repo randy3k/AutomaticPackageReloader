@@ -35,7 +35,7 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name, dummy=True, verbose=True):
     if is_dependency(pkg_name):
-        reload_dependency(pkg_name, verbose)
+        reload_dependency(pkg_name, dummy, verbose)
         return
 
     if pkg_name not in sys.modules:
@@ -72,7 +72,7 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         dprint("end", fill='-')
 
 
-def reload_dependency(dependency_name, verbose=True):
+def reload_dependency(dependency_name, dummy=True, verbose=True):
     """
     Package Control dependencies aren't regular packages, so we don't want to
     call `sublime_plugin.unload_module` or `sublime_plugin.reload_plugin`.
@@ -90,7 +90,10 @@ def reload_dependency(dependency_name, verbose=True):
     manager = PackageManager()
     for package in manager.list_packages():
         if dependency_name in manager.get_dependencies(package):
-            reload_package(package, verbose)
+            reload_package(package, dummy=False, verbose=verbose)
+
+    if dummy:
+        load_dummy(verbose)
 
 def load_dummy(verbose):
     """
