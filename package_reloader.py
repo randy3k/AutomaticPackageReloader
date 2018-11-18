@@ -21,9 +21,9 @@ def relative_to_spp(path):
     spp = sublime.packages_path()
     path = os.path.realpath(path)
     for f in os.listdir(spp):
-        path2 = os.path.realpath(os.path.join(spp, f))
-        if path.startswith(path2 + os.sep):
-            return os.sep + os.path.join(f, os.path.relpath(path, path2))
+        f2 = os.path.realpath(os.path.join(spp, f))
+        if path.startswith(f2 + os.sep):
+            return os.sep + os.path.join(f, os.path.relpath(path, f2))
     return None
 
 
