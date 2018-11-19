@@ -95,6 +95,7 @@ def reload_dependency(dependency_name, dummy=True, verbose=True):
     if dummy:
         load_dummy(verbose)
 
+
 def load_dummy(verbose):
     """
     Hack to trigger automatic "reloading plugins".
