@@ -31,6 +31,38 @@ def dprint(*args, fill=None, fill_width=60, **kwargs):
     print("[Package Reloader]", *args, **kwargs)
 
 
+def path_contains(a, b):
+    return a == b or b.startswith(a + os.sep)
+
+
+def get_package_modules(pkg_name):
+    in_installed_path = functools.partial(
+        path_contains,
+        os.path.join(
+            sublime.installed_packages_path(),
+            pkg_name + '.sublime-package'
+        )
+    )
+
+    in_package_path = functools.partial(
+        path_contains,
+        os.path.join(sublime.packages_path(), pkg_name)
+    )
+
+    def module_in_package(module):
+        file = getattr(module, '__file__', '')
+        paths = getattr(module, '__path__', ())
+        return (
+            in_installed_path(file) or any(map(in_installed_path, paths)) or
+            in_package_path(file) or any(map(in_package_path, paths))
+        )
+
+    return {
+        name: module
+        for name, module in sys.modules.items()
+        if module_in_package(module)
+    }
+
 # check the link for comments
 # https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
 def reload_package(pkg_name, dummy=True, verbose=True):
@@ -42,14 +74,11 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         dprint("error:", pkg_name, "is not loaded.")
         return
 
-    main = sys.modules[pkg_name]
-
     if verbose:
         dprint("begin", fill='=')
 
-    modules = {main.__name__: main}
-    modules.update({name: module for name, module in sys.modules.items()
-                    if name.startswith(pkg_name + ".")})
+    modules = get_package_modules(pkg_name)
+
     for m in modules:
         if m in sys.modules:
             sublime_plugin.unload_module(modules[m])
@@ -81,11 +110,8 @@ def reload_dependency(dependency_name, dummy=True, verbose=True):
     unload the dependency's modules because calling `reload_package` on a
     dependent module will not unload the dependency.)
     """
-    dependency_base = os.path.join(sublime.packages_path(), dependency_name) + os.sep
-
-    for module in list(sys.modules.values()):
-        if getattr(module, '__file__', '').startswith(dependency_base):
-            del sys.modules[module.__name__]
+    for name in get_package_modules(dependency_name):
+        del sys.modules[name]
 
     manager = PackageManager()
     for package in manager.list_packages():
