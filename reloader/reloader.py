@@ -1,6 +1,7 @@
 import sublime
 import sublime_plugin
 import os
+import posixpath
 import threading
 import builtins
 import functools
@@ -219,9 +220,12 @@ def reload_missing(modules, verbose):
 
 
 def reload_plugin(pkg_name):
-    pkg_path = os.path.join(os.path.realpath(sublime.packages_path()), pkg_name)
-    plugins = [pkg_name + "." + os.path.splitext(file_path)[0]
-               for file_path in os.listdir(pkg_path) if file_path.endswith(".py")]
+    plugins = [
+        pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0])
+        for path in sublime.find_resources("*.py")
+        if posixpath.dirname(path) == 'Packages/'+pkg_name
+    ]
+
     for plugin in plugins:
         sublime_plugin.reload_plugin(plugin)
 
