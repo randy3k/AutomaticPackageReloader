@@ -3,6 +3,7 @@ import sublime
 import os
 from glob import glob
 import re
+from threading import Thread
 
 from .reloader import reload_package, ProgressBar
 
@@ -37,8 +38,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
         if file_name and file_name.endswith(".py") and relative_to_spp(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
             if package_reloader_settings.get("reload_on_save"):
-                sublime.set_timeout(
-                    lambda: view.window().run_command("package_reloader_reload"), 100)
+                view.window().run_command("package_reloader_reload")
 
 
 class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
@@ -73,9 +73,13 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         return None
 
     def run(self, pkg_name=None):
-        sublime.set_timeout_async(lambda: self.run_async(pkg_name))
+        Thread(
+            name="AutomaticPackageReloader",
+            target=self.run_async,
+            args=(pkg_name,)
+        ).start()
 
-    def run_async(self, pkg_name=None):
+    def run_async(self, pkg_name):
         global RELOADING
         if RELOADING:
             print("Reloader is running.")
