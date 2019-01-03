@@ -102,6 +102,41 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         dprint("end", fill='-')
 
 
+def resolve_dependencies(root_name):
+    """Given the name of a dependency, return all dependencies and packages
+    that require that dependency, directly or indirectly.
+    """
+    manager = PackageManager()
+
+    all_packages = manager.list_packages()
+    all_dependencies = manager.list_dependencies()
+
+    recursive_dependencies = set()
+    dependent_packages = set()
+
+    dependency_relationships = {
+        name: manager.get_dependencies(name)
+        for name in all_packages + all_dependencies
+    }
+
+    def rec(name):
+        if name in recursive_dependencies:
+            return
+
+        recursive_dependencies.add(name)
+
+        for dep_name in all_dependencies:
+            if name in dependency_relationships[dep_name]:
+                rec(dep_name)
+
+        for pkg_name in all_packages:
+            if name in dependency_relationships[pkg_name]:
+                dependent_packages.add(pkg_name)
+
+    rec(root_name)
+    return (recursive_dependencies, dependent_packages)
+
+
 def reload_dependency(dependency_name, dummy=True, verbose=True):
     """
     Package Control dependencies aren't regular packages, so we don't want to
@@ -111,13 +146,15 @@ def reload_dependency(dependency_name, dummy=True, verbose=True):
     unload the dependency's modules because calling `reload_package` on a
     dependent module will not unload the dependency.)
     """
-    for name in get_package_modules(dependency_name):
-        del sys.modules[name]
+    recursive_dependencies, dependent_packages = resolve_dependencies(dependency_name)
 
-    manager = PackageManager()
-    for package in manager.list_packages():
-        if dependency_name in manager.get_dependencies(package):
-            reload_package(package, dummy=False, verbose=verbose)
+    for dep_name in recursive_dependencies:
+        dprint("unloading dependency", dep_name)
+        for name in get_package_modules(dep_name):
+            del sys.modules[name]
+
+    for pkg_name in dependent_packages:
+        reload_package(pkg_name, dummy=False, verbose=verbose)
 
     if dummy:
         load_dummy(verbose)
