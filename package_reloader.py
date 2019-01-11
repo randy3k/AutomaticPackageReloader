@@ -28,12 +28,17 @@ def relative_to_spp(path):
     return None
 
 
-class PackageReloaderListener(sublime_plugin.EventListener):
+class PackageReloaderListener(sublime_plugin.ViewEventListener):
+    @classmethod
+    def applies_to_primary_view_only(cls):
+        return True
 
-    def on_post_save(self, view):
-        if view.is_scratch() or view.settings().get('is_widget'):
+    def on_post_save(self):
+        view = self.view
+        if view.is_scratch() or not view.is_primary() or view.settings().get('is_widget'):
             return
         file_name = view.file_name()
+        print(file_name, view.is_primary(), view.id())
 
         if file_name and file_name.endswith(".py") and relative_to_spp(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
@@ -84,7 +89,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         if RELOADING:
             print("Reloader is running.")
             return
-
+        RELOADING = True
         if not pkg_name:
             pkg_name = self.current_package_name
 
