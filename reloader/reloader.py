@@ -15,10 +15,8 @@ from .stack_meter import StackMeter
 try:
     from package_control.package_manager import PackageManager
 
-    _manager = PackageManager()
-
     def is_dependency(pkg_name):
-        return _manager._is_dependency(pkg_name)
+        return PackageManager()._is_dependency(pkg_name)
 
 except ImportError:
     def is_dependency(pkg_name):
@@ -75,12 +73,6 @@ def package_plugins(pkg_name):
     ]
 
 
-def unload_package(pkg_name):
-    for module in package_plugins(pkg_name):
-        print(module)
-        sublime_plugin.unload_module(sys.modules[module])
-
-
 def reload_package(pkg_name, dummy=True, verbose=True):
     if pkg_name not in sys.modules:
         dprint("error:", pkg_name, "is not loaded.")
@@ -90,29 +82,23 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         dependencies, packages = resolve_dependencies(pkg_name)
     else:
         dependencies = set()
-        packages = { pkg_name }
-
-    # package_modules = {
-    #     package: get_package_modules(package)
-    #     for package in packages | dependencies
-    # }
+        packages = {pkg_name}
 
     if verbose:
         dprint("begin", fill='=')
 
+    # Tell Sublime to unload plugins
     for pkg_name in packages:
-        print(package_plugins(pkg_name))
         for plugin in package_plugins(pkg_name):
             sublime_plugin.unload_module(sys.modules[plugin])
 
-    # for package, modules in package_modules.items():
-    #     for module in modules:
-    #         del sys.modules[module]
+    # Unload dependencies
     for dep_name in dependencies:
         modules = get_package_modules(dep_name)
         for module in modules:
             del sys.modules[module]
 
+    # Reload packages
     for pkg_name in packages:
         modules = get_package_modules(pkg_name)
         try:
@@ -121,12 +107,11 @@ def reload_package(pkg_name, dummy=True, verbose=True):
             with intercepting_imports(modules, verbose), \
                     importing_fromlist_aggresively(modules):
 
-                reload_plugin(pkg_name)
-                # for plugin in package_plugins(package):
-                #     sublime_plugin.reload_plugin(plugin)
+                for plugin in package_plugins(pkg_name):
+                    sublime_plugin.reload_plugin(plugin)
         except Exception:
             dprint("reload failed.", fill='-')
-            # reload_missing(modules, verbose)
+            reload_missing(modules, verbose)
             raise
 
     if dummy:
@@ -134,43 +119,6 @@ def reload_package(pkg_name, dummy=True, verbose=True):
 
     if verbose:
         dprint("end", fill='-')
-
-# check the link for comments
-# https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py
-# def reload_package(pkg_name, dummy=True, verbose=True):
-#     if is_dependency(pkg_name):
-#         reload_dependency(pkg_name, dummy, verbose)
-#         return
-
-#     if pkg_name not in sys.modules:
-#         dprint("error:", pkg_name, "is not loaded.")
-#         return
-
-#     if verbose:
-#         dprint("begin", fill='=')
-
-#     modules = get_package_modules(pkg_name)
-
-#     for m in modules:
-#         if m in sys.modules:
-#             sublime_plugin.unload_module(modules[m])
-#             del sys.modules[m]
-
-#     try:
-#         with intercepting_imports(modules, verbose), \
-#                 importing_fromlist_aggresively(modules):
-
-#             reload_plugin(pkg_name)
-#     except Exception:
-#         dprint("reload failed.", fill='-')
-#         reload_missing(modules, verbose)
-#         raise
-
-#     if dummy:
-#         load_dummy(verbose)
-
-#     if verbose:
-#         dprint("end", fill='-')
 
 
 def resolve_dependencies(root_name):
@@ -206,29 +154,6 @@ def resolve_dependencies(root_name):
 
     rec(root_name)
     return (recursive_dependencies, dependent_packages)
-
-
-# def reload_dependency(dependency_name, dummy=True, verbose=True):
-#     """
-#     Package Control dependencies aren't regular packages, so we don't want to
-#     call `sublime_plugin.unload_module` or `sublime_plugin.reload_plugin`.
-#     Instead, we manually unload all of the modules in the dependency and then
-#     `reload_package` any packages that use that dependency. (We have to manually
-#     unload the dependency's modules because calling `reload_package` on a
-#     dependent module will not unload the dependency.)
-#     """
-#     recursive_dependencies, dependent_packages = resolve_dependencies(dependency_name)
-
-#     for dep_name in recursive_dependencies:
-#         dprint("unloading dependency", dep_name)
-#         for name in get_package_modules(dep_name):
-#             del sys.modules[name]
-
-#     for pkg_name in dependent_packages:
-#         reload_package(pkg_name, dummy=False, verbose=verbose)
-
-#     if dummy:
-#         load_dummy(verbose)
 
 
 def load_dummy(verbose):
@@ -287,17 +212,6 @@ def reload_missing(modules, verbose):
             if verbose:
                 dprint("reloading missing module", name)
             sys.modules[name] = modules[name]
-
-
-def reload_plugin(pkg_name):
-    plugins = [
-        pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0])
-        for path in sublime.find_resources("*.py")
-        if posixpath.dirname(path) == 'Packages/'+pkg_name
-    ]
-
-    for plugin in plugins:
-        sublime_plugin.reload_plugin(plugin)
 
 
 @contextmanager

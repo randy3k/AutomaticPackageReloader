@@ -28,17 +28,12 @@ def relative_to_spp(path):
     return None
 
 
-class PackageReloaderListener(sublime_plugin.ViewEventListener):
-    @classmethod
-    def applies_to_primary_view_only(cls):
-        return True
+class PackageReloaderListener(sublime_plugin.EventListener):
 
-    def on_post_save(self):
-        view = self.view
-        if view.is_scratch() or not view.is_primary() or view.settings().get('is_widget'):
+    def on_post_save(self, view):
+        if view.is_scratch() or view.settings().get('is_widget'):
             return
         file_name = view.file_name()
-        print(file_name, view.is_primary(), view.id())
 
         if file_name and file_name.endswith(".py") and relative_to_spp(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
@@ -108,7 +103,6 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             if not console_opened and open_console:
                 self.window.run_command("show_panel", {"panel": "console"})
             try:
-                RELOADING = True
                 reload_package(pkg_name, verbose=pr_settings.get('verbose'))
             except Exception:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
@@ -116,7 +110,6 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                     self.window.run_command("show_panel", {"panel": "console"})
                 raise
             finally:
-                RELOADING = False
                 progress_bar.stop()
 
             if close_console_on_success:
