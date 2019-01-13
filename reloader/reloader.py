@@ -87,32 +87,31 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
+    all_modules = {
+        module_name: module
+        for pkg_name in dependencies | packages
+        for module_name, module in get_package_modules(pkg_name).items()
+    }
+
     # Tell Sublime to unload plugins
     for pkg_name in packages:
         for plugin in package_plugins(pkg_name):
             sublime_plugin.unload_module(sys.modules[plugin])
 
-    # Unload dependencies
-    for dep_name in dependencies:
-        modules = get_package_modules(dep_name)
-        for module in modules:
-            del sys.modules[module]
+    # Unload modules
+    for module_name in all_modules:
+        del sys.modules[module_name]
 
     # Reload packages
-    for pkg_name in packages:
-        modules = get_package_modules(pkg_name)
-        try:
-            for module in modules:
-                del sys.modules[module]
-            with intercepting_imports(modules, verbose), \
-                    importing_fromlist_aggresively(modules):
-
+    try:
+        with intercepting_imports(all_modules, verbose), importing_fromlist_aggresively(all_modules):
+            for pkg_name in packages:
                 for plugin in package_plugins(pkg_name):
                     sublime_plugin.reload_plugin(plugin)
-        except Exception:
-            dprint("reload failed.", fill='-')
-            reload_missing(modules, verbose)
-            raise
+    except Exception:
+        dprint("reload failed.", fill='-')
+        reload_missing(modules, verbose)
+        raise
 
     if dummy:
         load_dummy(verbose)
