@@ -110,7 +110,7 @@ def reload_package(pkg_name, dummy=True, verbose=True):
                     sublime_plugin.reload_plugin(plugin)
     except Exception:
         dprint("reload failed.", fill='-')
-        reload_missing(modules, verbose)
+        reload_missing(all_modules, verbose)
         raise
 
     if dummy:
