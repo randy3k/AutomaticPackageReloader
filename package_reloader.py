@@ -103,7 +103,6 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             if not console_opened and open_console:
                 self.window.run_command("show_panel", {"panel": "console"})
             try:
-                RELOADING = True
                 reload_package(pkg_name, verbose=pr_settings.get('verbose'))
             except Exception:
                 sublime.status_message("Fail to reload {}.".format(pkg_name))
@@ -111,7 +110,6 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                     self.window.run_command("show_panel", {"panel": "console"})
                 raise
             finally:
-                RELOADING = False
                 progress_bar.stop()
 
             if close_console_on_success:
