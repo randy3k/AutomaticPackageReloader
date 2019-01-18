@@ -96,11 +96,13 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     # Tell Sublime to unload plugins
     for pkg_name in packages:
         for plugin in package_plugins(pkg_name):
-            sublime_plugin.unload_module(sys.modules[plugin])
+            module = sys.modules.get(plugin)
+            if module:
+                sublime_plugin.unload_module(module)
 
     # Unload modules
     for module_name in all_modules:
-        del sys.modules[module_name]
+        sys.modules.pop(module_name)
 
     # Reload packages
     try:
