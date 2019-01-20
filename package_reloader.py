@@ -8,7 +8,10 @@ from threading import Thread, Lock
 from .reloader import reload_package, ProgressBar
 
 
-reload_lock = Lock()
+try:
+    reload_lock  # Preserve same lock across reloads
+except NameError:
+    reload_lock = Lock()
 
 
 def casedpath(path):
