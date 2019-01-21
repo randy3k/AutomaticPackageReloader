@@ -7,7 +7,7 @@ import builtins
 import functools
 import importlib
 import sys
-import types
+from inspect import ismodule
 from contextlib import contextmanager
 from .stack_meter import StackMeter
 
@@ -237,7 +237,7 @@ def importing_fromlist_aggresively(modules):
                 fromlist.remove('*')
                 fromlist.extend(getattr(module, '__all__', []))
             for x in fromlist:
-                if isinstance(getattr(module, x, None), types.ModuleType):
+                if ismodule(getattr(module, x, None)):
                     from_name = '{}.{}'.format(module.__name__, x)
                     if from_name in modules:
                         importlib.import_module(from_name)
