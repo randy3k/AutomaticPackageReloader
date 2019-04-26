@@ -71,7 +71,19 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
 
         return None
 
+    def prompt_package(self, callback):
+        package = self.current_package_name
+        if not package:
+            package = ""
+        view = sublime.active_window().show_input_panel(
+            'Package:', package, callback, None, None)
+        view.run_command("select_all")
+
     def run(self, pkg_name=None):
+        if pkg_name == "<prompt>":
+            self.prompt_package(lambda x: self.run(pkg_name=x))
+            return
+
         if pkg_name is None:
             pkg_name = self.current_package_name
             if pkg_name is None:
@@ -85,36 +97,34 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         ).start()
 
     def run_async(self, pkg_name):
-        lock = reload_lock # In case we're reloading AutoPackageReloader
+        lock = reload_lock  # In case we're reloading AutoPackageReloader
         if not lock.acquire(blocking=False):
             print("Reloader is running.")
             return
 
+        pr_settings = sublime.load_settings("package_reloader.sublime-settings")
+        open_console = pr_settings.get("open_console")
+        open_console_on_failure = pr_settings.get("open_console_on_failure")
+        close_console_on_success = pr_settings.get("close_console_on_success")
+
+        progress_bar = ProgressBar("Reloading %s" % pkg_name)
+        progress_bar.start()
+
+        console_opened = self.window.active_panel() == "console"
+        if not console_opened and open_console:
+            self.window.run_command("show_panel", {"panel": "console"})
         try:
-            pr_settings = sublime.load_settings("package_reloader.sublime-settings")
-            open_console = pr_settings.get("open_console")
-            open_console_on_failure = pr_settings.get("open_console_on_failure")
-            close_console_on_success = pr_settings.get("close_console_on_success")
-
-            progress_bar = ProgressBar("Reloading %s" % pkg_name)
-            progress_bar.start()
-
-            console_opened = self.window.active_panel() == "console"
-            if not console_opened and open_console:
-                self.window.run_command("show_panel", {"panel": "console"})
-            try:
-                reload_package(pkg_name, verbose=pr_settings.get('verbose'))
-            except Exception:
-                sublime.status_message("Fail to reload {}.".format(pkg_name))
-                if open_console_on_failure:
-                    self.window.run_command("show_panel", {"panel": "console"})
-                raise
-            finally:
-                progress_bar.stop()
-
+            reload_package(pkg_name, verbose=pr_settings.get('verbose'))
             if close_console_on_success:
                 self.window.run_command("hide_panel", {"panel": "console"})
 
             sublime.status_message("{} reloaded.".format(pkg_name))
+        except Exception:
+            sublime.status_message("Fail to reload {}.".format(pkg_name))
+            if open_console_on_failure:
+                self.window.run_command("show_panel", {"panel": "console"})
+            sublime.status_message("Fail to reload {}.".format(pkg_name))
+            raise
         finally:
+            progress_bar.stop()
             lock.release()
