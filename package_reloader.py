@@ -55,9 +55,6 @@ class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
 
 
 class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
-    def is_enabled(self):
-        return self.current_package_name is not None
-
     @property
     def current_package_name(self):
         view = self.window.active_view()
