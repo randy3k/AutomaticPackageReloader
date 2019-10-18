@@ -38,7 +38,6 @@ else:
     def relative_to_spp(path):
         spp = os.path.realpath(sublime.packages_path())
         if path.startswith(spp + os.sep):
-            print("This is: ", path[len(spp):])
             return path[len(spp):]
 
         for name in os.listdir(spp):
