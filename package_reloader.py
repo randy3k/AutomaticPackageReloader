@@ -3,6 +3,7 @@ import sublime
 import os
 from glob import glob
 import re
+import platform
 from threading import Thread, Lock
 
 from .reloader import reload_package, ProgressBar
@@ -14,21 +15,42 @@ except NameError:
     reload_lock = Lock()
 
 
-def casedpath(path):
-    # path on Windows may not be properly cased
-    # https://github.com/randy3k/AutomaticPackageReloader/issues/10
-    r = glob(re.sub(r'([^:/\\])(?=[/\\]|$)', r'[\1]', path))
-    return r and r[0] or path
+if platform.system() == 'Windows':
+    # On Windows, paths may not be properly cased so we feed them to glob.glob
+    # (see https://github.com/randy3k/AutomaticPackageReloader/issues/10)
+    def relative_to_spp(path):
+        def casedpath(path):
+            r = glob(re.sub(r'([^:/\\])(?=[/\\]|$)', r'[\1]', path))
+            return r and r[0] or path
 
+        spp = sublime.packages_path()
+        for p in [path, casedpath(os.path.realpath(path))]:
+            for sp in [spp, casedpath(os.path.realpath(spp))]:
+                if p.startswith(sp + os.sep):
+                    return p[len(sp):]
+        return None
+else:
+    # On Linux and Mac OS, Sublime also loads packages if they are symlinks to folders located 
+    # outside the Sublime package path (SPP). So we detect those files that are opened not via SPP 
+    # symlinks but still are loaded into Sublime. We do this by scanning all SPP symlinks and 
+    # checking whether the path in question is located under the symlink's target. If yes, that's
+    # still our file and we return its path relative to the symlink. 
+    def relative_to_spp(path):
+        spp = os.path.realpath(sublime.packages_path())
+        if path.startswith(spp + os.sep):
+            print("This is: ", path[len(spp):])
+            return path[len(spp):]
 
-def relative_to_spp(path):
-    spp = sublime.packages_path()
-    spp_real = casedpath(os.path.realpath(spp))
-    for p in [path, casedpath(os.path.realpath(path))]:
-        for sp in [spp, spp_real]:
-            if p.startswith(sp + os.sep):
-                return p[len(sp):]
-    return None
+        for name in os.listdir(spp):
+            fullname = os.path.join(spp, name)
+            if not (os.path.islink(fullname) and os.path.isdir(fullname)):
+                continue
+
+            target = os.readlink(fullname)
+            if path.startswith(target + os.sep):
+                return os.path.join('/', name, path[len(target + os.sep):])
+
+        return None
 
 
 class PackageReloaderListener(sublime_plugin.EventListener):
