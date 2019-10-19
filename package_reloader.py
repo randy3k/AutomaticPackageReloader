@@ -34,16 +34,17 @@ def relative_to_spp(path):
             if p.startswith(sp + os.sep):
                 return p[len(sp):]
 
-    # we try to follow symlink if the real file is not located in spp
-    for p in [path, casedpath(os.path.realpath(path))]:
-        for d in os.listdir(spp):
-            subdir = os.path.join(spp, d)
-            subdir_real = casedpath(os.path.realpath(subdir))
-            if not (os.path.islink(subdir) and os.path.isdir(subdir)):
-                continue
-            for sd in [subdir, subdir_real]:
-                if p.startswith(sd + os.sep):
-                    return os.sep + d + p[len(sd):]
+    if not sys.platform.startswith("win"):
+        # we try to follow symlink if the real file is not located in spp
+        for p in [path, casedpath(os.path.realpath(path))]:
+            for d in os.listdir(spp):
+                subdir = os.path.join(spp, d)
+                subdir_real = casedpath(os.path.realpath(subdir))
+                if not (os.path.islink(subdir) and os.path.isdir(subdir)):
+                    continue
+                for sd in [subdir, subdir_real]:
+                    if p.startswith(sd + os.sep):
+                        return os.sep + d + p[len(sd):]
 
     return None
 
