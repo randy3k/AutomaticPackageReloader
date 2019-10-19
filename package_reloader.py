@@ -16,33 +16,33 @@ except NameError:
 
 
 if sys.platform.startswith("win"):
-    def casedpath(path):
+    def realpath(path):
         # path on Windows may not be properly cased
         # https://github.com/randy3k/AutomaticPackageReloader/issues/10
-        r = glob(re.sub(r'([^:/\\])(?=[/\\]|$)', r'[\1]', path))
+        r = glob(re.sub(r'([^:/\\])(?=[/\\]|$)', r'[\1]', os.path.realpath(path)))
         return r and r[0] or path
 else:
-    def casedpath(path):
-        return path
+    def realpath(path):
+        return os.path.realpath(path)
 
 
 def relative_to_spp(path):
     spp = sublime.packages_path()
-    spp_real = casedpath(os.path.realpath(spp))
-    for p in [path, casedpath(os.path.realpath(path))]:
-        for sp in [spp, spp_real]:
+    spp_real = realpath(spp)
+    for p in set([path, realpath(path)]):
+        for sp in set([spp, spp_real]):
             if p.startswith(sp + os.sep):
                 return p[len(sp):]
 
     if not sys.platform.startswith("win"):
         # we try to follow symlink if the real file is not located in spp
-        for p in [path, casedpath(os.path.realpath(path))]:
+        for p in set([path, realpath(path)]):
             for d in os.listdir(spp):
                 subdir = os.path.join(spp, d)
-                subdir_real = casedpath(os.path.realpath(subdir))
+                subdir_real = realpath(subdir)
                 if not (os.path.islink(subdir) and os.path.isdir(subdir)):
                     continue
-                for sd in [subdir, subdir_real]:
+                for sd in set([subdir, subdir_real]):
                     if p.startswith(sd + os.sep):
                         return os.sep + d + p[len(sd):]
 
