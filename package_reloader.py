@@ -26,25 +26,25 @@ else:
         return os.path.realpath(path)
 
 
-def relative_to_spp(path):
+def package_of(path):
     spp = sublime.packages_path()
     spp_real = realpath(spp)
     for p in {path, realpath(path)}:
         for sp in {spp, spp_real}:
             if p.startswith(sp + os.sep):
-                return p[len(sp):]
+                return p[len(sp):].split(os.sep)[1]
 
     if not sys.platform.startswith("win"):
         # we try to follow symlink if the real file is not located in spp
-        for p in {path, realpath(path)}:
-            for d in os.listdir(spp):
-                subdir = os.path.join(spp, d)
-                subdir_real = realpath(subdir)
-                if not (os.path.islink(subdir) and os.path.isdir(subdir)):
-                    continue
-                for sd in {subdir, subdir_real}:
+        for d in os.listdir(spp):
+            subdir = os.path.join(spp, d)
+            subdir_real = realpath(subdir)
+            if not (os.path.islink(subdir) and os.path.isdir(subdir)):
+                continue
+            for sd in {subdir, subdir_real}:
+                for p in {path, realpath(path)}:
                     if p.startswith(sd + os.sep):
-                        return os.sep + d + p[len(sd):]
+                        return d
 
     return None
 
@@ -56,7 +56,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
             return
         file_name = view.file_name()
 
-        if file_name and file_name.endswith(".py") and relative_to_spp(file_name):
+        if file_name and file_name.endswith(".py") and package_of(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
             if package_reloader_settings.get("reload_on_save"):
                 view.window().run_command("package_reloader_reload")
@@ -77,15 +77,16 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
     def current_package_name(self):
         view = self.window.active_view()
         if view and view.file_name():
-            file_path = relative_to_spp(view.file_name())
-            if file_path and file_path.endswith(".py"):
-                return file_path.split(os.sep)[1]
+            file_path = view.file_name()
+            package = package_of(file_path)
+            if package and file_path.endswith(".py"):
+                return package
 
         folders = self.window.folders()
         if folders and len(folders) > 0:
-            first_folder = relative_to_spp(folders[0])
-            if first_folder:
-                return os.path.basename(first_folder)
+            package = package_of(folders[0])
+            if package:
+                return package
 
         return None
 
