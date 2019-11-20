@@ -2,6 +2,7 @@ import sublime_plugin
 import sublime
 import os
 import sys
+import shutil
 from glob import glob
 import re
 from threading import Thread, Lock
@@ -109,6 +110,11 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 print("Cannot detect package name.")
                 return
 
+        if sys.version_info >= (3, 8) and pkg_name not in sys.modules:
+            print("switch to python 3.3")
+            self.window.run_command("package_reloader33_reload", {"pkg_name": pkg_name})
+            return
+
         Thread(
             name="AutomaticPackageReloader",
             target=self.run_async,
@@ -146,3 +152,26 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         finally:
             progress_bar.stop()
             lock.release()
+
+
+def plugin_loaded():
+    if sys.version_info >= (3, 8):
+        APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
+        if not os.path.exists(APR33):
+            os.makedirs(APR33)
+        data = sublime.load_resource("Packages/AutomaticPackageReloader/py33/package_reloader.py")
+        with open(os.path.join(APR33, "package_reloader.py"), 'w') as f:
+            f.write(data.replace("\r\n", "\n"))
+        with open(os.path.join(APR33, ".package-reloader"), 'w') as f:
+            f.write("AutomaticPackageReloader")
+
+
+def plugin_unloaded():
+    APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
+    lock = reload_lock
+    # do not remove AutomaticPackageReloader33 if it is being reloaded by APR
+    if os.path.exists(APR33) and lock.acquire(blocking=False):
+        try:
+            shutil.rmtree(APR33)
+        except Exception:
+            pass
