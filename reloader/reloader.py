@@ -57,8 +57,20 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
-    packages = resolve_dependencies(pkg_name)
-    modules = list(get_package_modules(packages))
+    packages = list(resolve_dependencies(pkg_name))
+
+    try:
+        # additional packages to be reloaded
+        context = sublime.load_resource(
+            "Packages/{}/.package-reloader".format(pkg_name))
+        extra_packages = context.strip().replace("\r\n", "\n").split("\n")
+    except (FileNotFoundError, OSError):
+        extra_packages = []
+
+    for extra_pkg in extra_packages:
+        packages += list(resolve_dependencies(extra_pkg))
+
+    modules = list(get_package_modules(set(packages)))
 
     sorted_modules = sorted(
         [module for module, is_plugin in modules],

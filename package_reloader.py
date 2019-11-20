@@ -162,11 +162,15 @@ def plugin_loaded():
         data = sublime.load_resource("Packages/AutomaticPackageReloader/py33/package_reloader.py")
         with open(os.path.join(APR33, "package_reloader.py"), 'w') as f:
             f.write(data.replace("\r\n", "\n"))
+        with open(os.path.join(APR33, ".package-reloader"), 'w') as f:
+            f.write("AutomaticPackageReloader")
 
 
 def plugin_unloaded():
     APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
-    if os.path.exists(APR33):
+    lock = reload_lock
+    # do not remove AutomaticPackageReloader33 if it is being reloaded by APR
+    if os.path.exists(APR33) and lock.acquire(blocking=False):
         try:
             shutil.rmtree(APR33)
         except Exception:
