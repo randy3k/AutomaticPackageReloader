@@ -40,7 +40,7 @@ It is recommended to add the following in your `.sublime-project` file so that <
 
 ### Additional modules
 
-APR would try the best to guess the dependent modules to be reloaded. Sometimes, it may fail to detect all the dependency. In those cases, developers could specify extra modules to be reloaded in `.package-reloader` file.
+APR would try its best to guess the dependent modules of the package. Sometimes, it may fail to detect all the dependencies. In those cases, developers could specify extra modules to be reloaded in the `.package-reloader` file.
 
 
 ### Credits
