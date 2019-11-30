@@ -99,6 +99,13 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             'Package:', package, callback, None, None)
         view.run_command("select_all")
 
+    def package_python_version(self, pkg_name):
+        try:
+            version = sublime.load_resource("Packages/{}/.python-version".format(pkg_name))
+        except FileNotFoundError:
+            version = "3.3"
+        return version
+
     def run(self, pkg_name=None):
         if pkg_name == "<prompt>":
             self.prompt_package(lambda x: self.run(pkg_name=x))
@@ -110,8 +117,8 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 print("Cannot detect package name.")
                 return
 
-        if sys.version_info >= (3, 8) and pkg_name not in sys.modules:
-            print("switch to python 3.3")
+        if sys.version_info >= (3, 8) and self.package_python_version(pkg_name) == "3.3":
+            print("run reloader in python 3.3")
             self.window.run_command("package_reloader33_reload", {"pkg_name": pkg_name})
             return
 
