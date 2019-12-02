@@ -6,8 +6,8 @@ loader = PathFinder.find_module("AutomaticPackageReloader")
 mod = loader.load_module("AutomaticPackageReloader")
 sys.modules["AutomaticPackageReloader"] = mod
 
-from AutomaticPackageReloader.package_reloader import PackageReloaderReloadCommand  # noqa
+from AutomaticPackageReloader import package_reloader as package_reloader38  # noqa
 
 
-class PackageReloader33ReloadCommand(PackageReloaderReloadCommand):
+class PackageReloader33ReloadCommand(package_reloader38.PackageReloaderReloadCommand):
     pass
