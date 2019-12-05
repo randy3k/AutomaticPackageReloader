@@ -7,10 +7,11 @@ import sys
 
 from .dprint import dprint
 from .importer import ReloadingImporter
-from .resolver import resolve_dependencies
+from .resolver import resolve_parents
 
 
 def get_package_modules(package_names):
+    package_names = set(package_names)
     package_path_bases = [
         p
         for pkg_name in package_names
@@ -57,8 +58,6 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
-    packages = list(resolve_dependencies(pkg_name))
-
     try:
         # additional packages to be reloaded
         context = sublime.load_resource(
@@ -66,29 +65,29 @@ def reload_package(pkg_name, dummy=True, verbose=True):
         extra_packages = context.strip().replace("\r\n", "\n").split("\n")
     except (FileNotFoundError, OSError):
         extra_packages = []
+    packages = [pkg_name] + extra_packages
+    parents = set()
+    for package in packages:
+        for parent in resolve_parents(package):
+            parents.add(parent)
+    parents = list(parents)
 
-    for extra_pkg in extra_packages:
-        packages += list(resolve_dependencies(extra_pkg))
-
-    modules = list(get_package_modules(set(packages)))
-
-    sorted_modules = sorted(
-        [module for module, is_plugin in modules],
-        key=lambda module: module.__name__.split('.')
+    modules = sorted(
+        list(get_package_modules(packages + parents)),
+        key=lambda x: x[0].__name__.split('.')
     )
 
-    plugins = [
-        module
-        for module, is_plugin in modules
-        if is_plugin
-    ]
+    plugins = [m for m, is_plugin in modules if is_plugin]
+    modules_to_reload = [m for m, is_plugin in modules]
 
     # Tell Sublime to unload plugins
     for module in plugins:
         sublime_plugin.unload_module(module)
 
-    with ReloadingImporter(sorted_modules, verbose) as reload:
-        for module in sorted_modules:
+    with ReloadingImporter(modules_to_reload, verbose) as reload:
+        # we only reload top level plugins to mimic Sublime Text natural order
+        # in the case of a PC dependency, we just reload it
+        for module in plugins:
             reload(module)
 
     for module in plugins:
