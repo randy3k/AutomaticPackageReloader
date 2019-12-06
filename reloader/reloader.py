@@ -2,6 +2,7 @@ import sublime
 import sublime_plugin
 import os
 import os.path
+import posixpath
 import threading
 import sys
 
@@ -48,7 +49,13 @@ def get_package_modules(package_names):
             continue
         else:
             is_plugin = (os.path.dirname(path) == base)
-            yield module, is_plugin
+            yield module.__name__, is_plugin
+
+    # get all the top level plugins in case they were removed from sys.modules
+    for path in sublime.find_resources("*.py"):
+        for pkg_name in package_names:
+            if posixpath.dirname(path) == 'Packages/'+pkg_name:
+                yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
 
 
 def reload_package(pkg_name, dummy=True, verbose=True):
@@ -68,25 +75,30 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     parents = list(parents)
 
     modules = sorted(
-        list(get_package_modules(packages + parents)),
-        key=lambda x: x[0].__name__.split('.')
+        list(set(get_package_modules(packages + parents))),
+        key=lambda x: x[0].split('.')
     )
 
     plugins = [m for m, is_plugin in modules if is_plugin]
-    # these are modules marked to be reloaded, they are not necessarily reloaded
-    modules_to_reload = [m for m, is_plugin in modules]
+    # Tell Sublime to unload plugin_modules
+    for plugin in plugins:
+        if plugin in sys.modules:
+            sublime_plugin.unload_module(sys.modules[plugin])
 
-    # Tell Sublime to unload plugins
-    for module in plugins:
-        sublime_plugin.unload_module(module)
+    # these are modules marked to be reloaded, they are not necessarily reloaded
+    modules_to_reload = [sys.modules[m] for m, is_plugin in modules if m in sys.modules]
 
     with ReloadingImporter(modules_to_reload, verbose) as importer:
         if plugins:
-            # we only reload top level plugins to mimic Sublime Text natural order
-            for module in plugins:
-                importer.reload(module)
-            for module in plugins:
-                sublime_plugin.load_module(module)
+            # we only reload top level plugin_modules to mimic Sublime Text natural order
+            for plugin in plugins:
+                if plugin in sys.modules:
+                    module = sys.modules[plugin]
+                    importer.reload(module)
+                    sublime_plugin.load_module(module)
+                else:
+                    # in case we missed something
+                    sublime_plugin.reload_plugin(plugin)
         else:
             # it is possibly a dependency but no packages use it
             for module in modules_to_reload:
