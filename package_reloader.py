@@ -7,7 +7,8 @@ from glob import glob
 import re
 from threading import Thread, Lock
 
-from .reloader import reload_package, ProgressBar
+from .reloader import reload_package
+from .utils import ProgressBar
 
 
 try:
