@@ -8,7 +8,7 @@ import re
 from threading import Thread, Lock
 
 from .reloader import reload_package
-from .utils import ProgressBar
+from .utils import ProgressBar, read_config
 
 
 try:
@@ -107,7 +107,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             version = "3.3"
         return version
 
-    def run(self, pkg_name=None):
+    def run(self, pkg_name=None, extra_pkgs=[]):
         if pkg_name == "<prompt>":
             self.prompt_package(lambda x: self.run(pkg_name=x))
             return
@@ -120,16 +120,17 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
 
         if sys.version_info >= (3, 8) and self.package_python_version(pkg_name) == "3.3":
             print("run reloader in python 3.3")
-            self.window.run_command("package_reloader33_reload", {"pkg_name": pkg_name})
+            self.window.run_command(
+                "package_reloader33_reload", {"pkg_name": pkg_name, "extra_pkgs": extra_pkgs})
             return
 
         Thread(
             name="AutomaticPackageReloader",
             target=self.run_async,
-            args=(pkg_name,)
+            args=(pkg_name, extra_pkgs)
         ).start()
 
-    def run_async(self, pkg_name):
+    def run_async(self, pkg_name, extra_pkgs=[]):
         lock = reload_lock  # In case we're reloading AutoPackageReloader
         if not lock.acquire(blocking=False):
             print("Reloader is running.")
@@ -161,10 +162,11 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             progress_bar.stop()
             lock.release()
 
-        # helper to reload ourself
-        if sys.version_info >= (3, 8) and pkg_name == "AutomaticPackageReloader":
+        extra_pkgs = read_config(pkg_name, "siblings", []) + extra_pkgs
+        if extra_pkgs:
+            next_package = extra_pkgs.pop(0)
             sublime.set_timeout(lambda: sublime.active_window().run_command(
-                "package_reloader33_reload", {"pkg_name": "AutomaticPackageReloader33"}))
+                "package_reloader_reload", {"pkg_name": next_package, "extra_pkgs": extra_pkgs}))
 
 
 def plugin_loaded():
@@ -175,8 +177,8 @@ def plugin_loaded():
         data = sublime.load_resource("Packages/AutomaticPackageReloader/py33/package_reloader.py")
         with open(os.path.join(APR33, "package_reloader.py"), 'w') as f:
             f.write(data.replace("\r\n", "\n"))
-        with open(os.path.join(APR33, ".package-reloader"), 'w') as f:
-            f.write("AutomaticPackageReloader")
+        with open(os.path.join(APR33, ".package_reloader.json"), 'w') as f:
+            f.write("{\"dependencies\" : [\"AutomaticPackageReloader\"]}")
 
 
 def plugin_unloaded():

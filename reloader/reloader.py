@@ -8,6 +8,7 @@ import sys
 from .dprint import dprint
 from .importer import ReloadingImporter
 from .resolver import resolve_parents
+from ..utils import read_config
 
 
 def get_package_modules(package_names):
@@ -58,13 +59,7 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
-    try:
-        # additional packages to be reloaded
-        context = sublime.load_resource(
-            "Packages/{}/.package-reloader".format(pkg_name))
-        extra_packages = context.strip().replace("\r\n", "\n").split("\n")
-    except (FileNotFoundError, OSError):
-        extra_packages = []
+    extra_packages = read_config(pkg_name, "dependencies", [])
     packages = [pkg_name] + extra_packages
     parents = set()
     for package in packages:

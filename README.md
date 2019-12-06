@@ -40,8 +40,13 @@ It is recommended to add the following in your `.sublime-project` file so that <
 
 ### Additional modules
 
-APR would try its best to guess the dependent modules of the package. Sometimes, it may fail to detect all the dependencies. In those cases, developers could specify extra modules to be reloaded in the `.package-reloader` file.
+APR would try its best to guess the dependent modules of the package. Sometimes, it may fail to detect all the dependencies. In those cases, developers could specify extra modules to be reloaded in the `.package_reloader.json` file.
 
+```js
+{
+  "dependencies" : ["<module1>", "<module2>"]
+}
+```
 
 ### Credits
 This is derived from the [code](https://github.com/divmain/GitSavvy/blob/599ba3cdb539875568a96a53fafb033b01708a67/common/util/reload.py) of Eldar Abusalimov.
