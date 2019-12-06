@@ -59,10 +59,12 @@ def get_package_modules(package_names):
 
 
 def reload_package(pkg_name, dummy=True, verbose=True):
-    if pkg_name not in sys.modules:
-        dprint("error:", pkg_name, "is not loaded.")
+    zipped_file = os.path.join(
+        sublime.installed_packages_path(), "{}.sublime-package".format(pkg_name))
+    unzipped_folder = os.path.join(sublime.packages_path(), pkg_name)
+    if not os.path.exists(zipped_file) and not os.path.exists(unzipped_folder):
+        dprint("error:", pkg_name, "is not installed.")
         return
-
     if verbose:
         dprint("begin", fill='=')
 
