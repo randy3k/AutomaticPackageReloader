@@ -58,18 +58,11 @@ def get_package_modules(package_names):
                 yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
 
 
-def reload_package(pkg_name, dummy=True, verbose=True):
-    zipped_file = os.path.join(
-        sublime.installed_packages_path(), "{}.sublime-package".format(pkg_name))
-    unzipped_folder = os.path.join(sublime.packages_path(), pkg_name)
-    if not os.path.exists(zipped_file) and not os.path.exists(unzipped_folder):
-        dprint("error:", pkg_name, "is not installed.")
-        return
+def reload_package(pkg_name, dependencies=[], dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
-    extra_packages = read_config(pkg_name, "dependencies", [])
-    packages = [pkg_name] + extra_packages
+    packages = [pkg_name] + dependencies
     parents = set()
     for package in packages:
         for parent in resolve_parents(package):

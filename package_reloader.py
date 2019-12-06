@@ -3,12 +3,10 @@ import sublime
 import os
 import sys
 import shutil
-from glob import glob
-import re
 from threading import Thread, Lock
 
 from .reloader import reload_package
-from .utils import ProgressBar, read_config
+from .utils import ProgressBar, read_config, has_package, package_of, package_python_version
 
 
 try:
@@ -17,42 +15,7 @@ except NameError:
     reload_lock = Lock()
 
 
-if sys.platform.startswith("win"):
-    def realpath(path):
-        # path on Windows may not be properly cased
-        # https://github.com/randy3k/AutomaticPackageReloader/issues/10
-        r = glob(re.sub(r'([^:/\\])(?=[/\\]|$)', r'[\1]', os.path.realpath(path)))
-        return r and r[0] or path
-else:
-    def realpath(path):
-        return os.path.realpath(path)
-
-
-def package_of(path):
-    spp = sublime.packages_path()
-    spp_real = realpath(spp)
-    for p in {path, realpath(path)}:
-        for sp in {spp, spp_real}:
-            if p.startswith(sp + os.sep):
-                return p[len(sp):].split(os.sep)[1]
-
-    if not sys.platform.startswith("win"):
-        # we try to follow symlink if the real file is not located in spp
-        for d in os.listdir(spp):
-            subdir = os.path.join(spp, d)
-            subdir_real = realpath(subdir)
-            if not (os.path.islink(subdir) and os.path.isdir(subdir)):
-                continue
-            for sd in {subdir, subdir_real}:
-                for p in {path, realpath(path)}:
-                    if p.startswith(sd + os.sep):
-                        return d
-
-    return None
-
-
 class PackageReloaderListener(sublime_plugin.EventListener):
-
     def on_post_save(self, view):
         if view.is_scratch() or view.settings().get('is_widget'):
             return
@@ -100,14 +63,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             'Package:', package, callback, None, None)
         view.run_command("select_all")
 
-    def package_python_version(self, pkg_name):
-        try:
-            version = sublime.load_resource("Packages/{}/.python-version".format(pkg_name))
-        except FileNotFoundError:
-            version = "3.3"
-        return version
-
-    def run(self, pkg_name=None, extra_pkgs=[]):
+    def run(self, pkg_name=None, extra_pkgs=[], verbose=None):
         if pkg_name == "<prompt>":
             self.prompt_package(lambda x: self.run(pkg_name=x))
             return
@@ -118,7 +74,10 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 print("Cannot detect package name.")
                 return
 
-        if sys.version_info >= (3, 8) and self.package_python_version(pkg_name) == "3.3":
+        if not has_package(pkg_name):
+            raise RuntimeError("{} is not installed.".format(pkg_name))
+
+        if sys.version_info >= (3, 8) and package_python_version(pkg_name) == "3.3":
             print("run reloader in python 3.3")
             self.window.run_command(
                 "package_reloader33_reload", {"pkg_name": pkg_name, "extra_pkgs": extra_pkgs})
@@ -127,10 +86,10 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         Thread(
             name="AutomaticPackageReloader",
             target=self.run_async,
-            args=(pkg_name, extra_pkgs)
+            args=(pkg_name, extra_pkgs, verbose)
         ).start()
 
-    def run_async(self, pkg_name, extra_pkgs=[]):
+    def run_async(self, pkg_name, extra_pkgs=[], verbose=None):
         lock = reload_lock  # In case we're reloading AutoPackageReloader
         if not lock.acquire(blocking=False):
             print("Reloader is running.")
@@ -147,8 +106,11 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         console_opened = self.window.active_panel() == "console"
         if not console_opened and open_console:
             self.window.run_command("show_panel", {"panel": "console"})
+        dependencies = read_config(pkg_name, "dependencies", [])
+        if verbose is None:
+            verbose = pr_settings.get('verbose')
         try:
-            reload_package(pkg_name, verbose=pr_settings.get('verbose'))
+            reload_package(pkg_name, dependencies=dependencies, verbose=verbose)
             if close_console_on_success:
                 self.window.run_command("hide_panel", {"panel": "console"})
 
@@ -165,8 +127,12 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         extra_pkgs = read_config(pkg_name, "siblings", []) + extra_pkgs
         if extra_pkgs:
             next_package = extra_pkgs.pop(0)
+            if not has_package(next_package):
+                print("{} is not installed.".format(next_package))
+                return
             sublime.set_timeout(lambda: sublime.active_window().run_command(
-                "package_reloader_reload", {"pkg_name": next_package, "extra_pkgs": extra_pkgs}))
+                "package_reloader_reload",
+                {"pkg_name": next_package, "extra_pkgs": extra_pkgs, "verbose": verbose}))
 
 
 def plugin_loaded():
