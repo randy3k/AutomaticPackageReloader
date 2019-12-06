@@ -161,6 +161,11 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             progress_bar.stop()
             lock.release()
 
+        # helper to reload ourself
+        if sys.version_info >= (3, 8) and pkg_name == "AutomaticPackageReloader":
+            sublime.set_timeout(lambda: sublime.active_window().run_command(
+                "package_reloader33_reload", {"pkg_name": "AutomaticPackageReloader33"}))
+
 
 def plugin_loaded():
     if sys.version_info >= (3, 8):
@@ -175,11 +180,12 @@ def plugin_loaded():
 
 
 def plugin_unloaded():
-    APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
-    lock = reload_lock
-    # do not remove AutomaticPackageReloader33 if it is being reloaded by APR
-    if os.path.exists(APR33) and lock.acquire(blocking=False):
-        try:
-            shutil.rmtree(APR33)
-        except Exception:
-            pass
+    if sys.version_info >= (3, 8):
+        APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
+        lock = reload_lock
+        # do not remove AutomaticPackageReloader33 if it is being reloaded by APR
+        if os.path.exists(APR33) and lock.acquire(blocking=False):
+            try:
+                shutil.rmtree(APR33)
+            except Exception:
+                pass
