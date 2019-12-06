@@ -48,14 +48,8 @@ class ReloadingImporter():
     def __enter__(self):
         self._orig___import__ = __import__
         builtins.__import__ = self.__import__
-
-        return self.reload
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # reload inplace any modules not reloaded
-        modules = [m for m in self._modules_to_reload]
-        for m in modules:
-            self.reload(m)
-
         builtins.__import__ = self._orig___import__
         del self._orig___import__

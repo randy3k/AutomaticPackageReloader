@@ -73,20 +73,24 @@ def reload_package(pkg_name, dummy=True, verbose=True):
     )
 
     plugins = [m for m, is_plugin in modules if is_plugin]
+    # these are modules marked to be reloaded, they are not necessarily reloaded
     modules_to_reload = [m for m, is_plugin in modules]
 
     # Tell Sublime to unload plugins
     for module in plugins:
         sublime_plugin.unload_module(module)
 
-    with ReloadingImporter(modules_to_reload, verbose) as reload:
-        # we only reload top level plugins to mimic Sublime Text natural order
-        # in the case of a PC dependency, we just reload it
-        for module in plugins:
-            reload(module)
-
-    for module in plugins:
-        sublime_plugin.load_module(module)
+    with ReloadingImporter(modules_to_reload, verbose) as importer:
+        if plugins:
+            # we only reload top level plugins to mimic Sublime Text natural order
+            for module in plugins:
+                importer.reload(module)
+            for module in plugins:
+                sublime_plugin.load_module(module)
+        else:
+            # it is possibly a dependency but no packages use it
+            for module in modules_to_reload:
+                importer.reload(module)
 
     if dummy:
         load_dummy(verbose)
