@@ -97,6 +97,10 @@ def reload_package(pkg_name, dummy=True, verbose=True):
                 if plugin in sys.modules:
                     module = sys.modules[plugin]
                     importer.reload(module)
+
+            for plugin in plugins:
+                if plugin in sys.modules:
+                    module = sys.modules[plugin]
                     sublime_plugin.load_module(module)
                 else:
                     # in case we missed something
