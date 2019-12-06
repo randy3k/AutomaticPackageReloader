@@ -9,7 +9,6 @@ import sys
 from .dprint import dprint
 from .importer import ReloadingImporter
 from .resolver import resolve_parents
-from ..utils import read_config
 
 
 def get_package_modules(package_names):
@@ -58,11 +57,11 @@ def get_package_modules(package_names):
                 yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
 
 
-def reload_package(pkg_name, dependencies=[], dummy=True, verbose=True):
+def reload_package(package, dependencies=[], dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
-    packages = [pkg_name] + dependencies
+    packages = [package] + dependencies
     parents = set()
     for package in packages:
         for parent in resolve_parents(package):

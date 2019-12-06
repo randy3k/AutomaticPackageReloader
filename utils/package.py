@@ -40,21 +40,21 @@ def package_of(path):
     return None
 
 
-def has_package(pkg_name):
+def has_package(package):
     zipped_file = os.path.join(
-        sublime.installed_packages_path(), "{}.sublime-package".format(pkg_name))
-    unzipped_folder = os.path.join(sublime.packages_path(), pkg_name)
+        sublime.installed_packages_path(), "{}.sublime-package".format(package))
+    unzipped_folder = os.path.join(sublime.packages_path(), package)
     if not os.path.exists(zipped_file) and not os.path.exists(unzipped_folder):
         return False
     preferences = sublime.load_settings("Preferences.sublime-settings")
-    if pkg_name in preferences.get("ignored_packages", []):
+    if package in preferences.get("ignored_packages", []):
         return False
     return True
 
 
-def package_python_version(pkg_name):
+def package_python_version(package):
     try:
-        version = sublime.load_resource("Packages/{}/.python-version".format(pkg_name))
+        version = sublime.load_resource("Packages/{}/.python-version".format(package))
     except FileNotFoundError:
         version = "3.3"
     return version

@@ -28,7 +28,6 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 
 
 class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
-
     def run(self):
         package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
         reload_on_save = not package_reloader_settings.get("reload_on_save")
@@ -63,33 +62,37 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
             'Package:', package, callback, None, None)
         view.run_command("select_all")
 
-    def run(self, pkg_name=None, extra_pkgs=[], verbose=None):
-        if pkg_name == "<prompt>":
-            self.prompt_package(lambda x: self.run(pkg_name=x))
+    def run(self, package=None, pkg_name=None, extra_pkgs=[], verbose=None):
+        if package is None and pkg_name is not None:
+            print("`pkg_name` is an deprecated option, use `package`.")
+            package = pkg_name
+
+        if package == "<prompt>":
+            self.prompt_package(lambda x: self.run(package=x))
             return
 
-        if pkg_name is None:
-            pkg_name = self.current_package_name
-            if pkg_name is None:
+        if package is None:
+            package = self.current_package_name
+            if package is None:
                 print("Cannot detect package name.")
                 return
 
-        if not has_package(pkg_name):
-            raise RuntimeError("{} is not installed.".format(pkg_name))
+        if not has_package(package):
+            raise RuntimeError("{} is not installed.".format(package))
 
-        if sys.version_info >= (3, 8) and package_python_version(pkg_name) == "3.3":
+        if sys.version_info >= (3, 8) and package_python_version(package) == "3.3":
             print("run reloader in python 3.3")
             self.window.run_command(
-                "package_reloader33_reload", {"pkg_name": pkg_name, "extra_pkgs": extra_pkgs})
+                "package_reloader33_reload", {"package": package, "extra_pkgs": extra_pkgs})
             return
 
         Thread(
             name="AutomaticPackageReloader",
             target=self.run_async,
-            args=(pkg_name, extra_pkgs, verbose)
+            args=(package, extra_pkgs, verbose)
         ).start()
 
-    def run_async(self, pkg_name, extra_pkgs=[], verbose=None):
+    def run_async(self, package, extra_pkgs=[], verbose=None):
         lock = reload_lock  # In case we're reloading AutoPackageReloader
         if not lock.acquire(blocking=False):
             print("Reloader is running.")
@@ -100,31 +103,31 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         open_console_on_failure = pr_settings.get("open_console_on_failure")
         close_console_on_success = pr_settings.get("close_console_on_success")
 
-        progress_bar = ProgressBar("Reloading %s" % pkg_name)
+        progress_bar = ProgressBar("Reloading %s" % package)
         progress_bar.start()
 
         console_opened = self.window.active_panel() == "console"
         if not console_opened and open_console:
             self.window.run_command("show_panel", {"panel": "console"})
-        dependencies = read_config(pkg_name, "dependencies", [])
+        dependencies = read_config(package, "dependencies", [])
         if verbose is None:
             verbose = pr_settings.get('verbose')
         try:
-            reload_package(pkg_name, dependencies=dependencies, verbose=verbose)
+            reload_package(package, dependencies=dependencies, verbose=verbose)
             if close_console_on_success:
                 self.window.run_command("hide_panel", {"panel": "console"})
 
-            sublime.status_message("{} reloaded.".format(pkg_name))
+            sublime.status_message("{} reloaded.".format(package))
         except Exception:
             if open_console_on_failure:
                 self.window.run_command("show_panel", {"panel": "console"})
-            sublime.status_message("Fail to reload {}.".format(pkg_name))
+            sublime.status_message("Fail to reload {}.".format(package))
             raise
         finally:
             progress_bar.stop()
             lock.release()
 
-        extra_pkgs = read_config(pkg_name, "siblings", []) + extra_pkgs
+        extra_pkgs = read_config(package, "siblings", []) + extra_pkgs
         if extra_pkgs:
             next_package = extra_pkgs.pop(0)
             if not has_package(next_package):
@@ -132,7 +135,7 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
                 return
             sublime.set_timeout(lambda: sublime.active_window().run_command(
                 "package_reloader_reload",
-                {"pkg_name": next_package, "extra_pkgs": extra_pkgs, "verbose": verbose}))
+                {"package": next_package, "extra_pkgs": extra_pkgs, "verbose": verbose}))
 
 
 def plugin_loaded():
