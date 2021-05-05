@@ -24,7 +24,8 @@ class PackageReloaderListener(sublime_plugin.EventListener):
         if file_name and file_name.endswith(".py") and package_of(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
             if package_reloader_settings.get("reload_on_save"):
-                view.window().run_command("package_reloader_reload")
+                sublime.set_timeout(
+                    lambda: view.window().run_command("package_reloader_reload"))
 
 
 class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
@@ -160,3 +161,5 @@ def plugin_unloaded():
                 shutil.rmtree(APR33)
             except Exception:
                 pass
+            finally:
+                lock.release()
