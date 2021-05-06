@@ -9,6 +9,7 @@ import sys
 from .dprint import dprint
 from .importer import ReloadingImporter
 from .resolver import resolve_parents
+from ..utils.package import package_python_matched
 
 
 def get_package_modules(package_names):
@@ -47,12 +48,15 @@ def get_package_modules(package_names):
         except StopIteration:
             continue
         else:
-            is_plugin = (os.path.dirname(path) == base)
+            pkg_name = module.__name__.split(".")[0]
+            is_plugin = (os.path.dirname(path) == base) and package_python_matched(pkg_name)
             yield module.__name__, is_plugin
 
     # get all the top level plugins in case they were removed from sys.modules
     for path in sublime.find_resources("*.py"):
         for pkg_name in package_names:
+            if not package_python_matched(pkg_name):
+                continue
             if posixpath.dirname(path) == 'Packages/'+pkg_name:
                 yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
 

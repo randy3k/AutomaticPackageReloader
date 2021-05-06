@@ -1,5 +1,6 @@
 import sublime
 
+import functools
 import os
 import sys
 import re
@@ -52,9 +53,20 @@ def has_package(package):
     return True
 
 
+@functools.lru_cache(maxsize=1024)
 def package_python_version(package):
     try:
         version = sublime.load_resource("Packages/{}/.python-version".format(package))
-    except FileNotFoundError:
+    except (FileNotFoundError, IOError):
         version = "3.3"
     return version
+
+
+@functools.lru_cache(maxsize=1024)
+def package_python_matched(package):
+    ver = package_python_version(package)
+    if sys.version_info >= (3, 8) and ver == "3.8":
+        return True
+    if sys.version_info >= (3, 3) and ver == "3.3":
+        return True
+    return False
