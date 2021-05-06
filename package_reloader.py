@@ -25,7 +25,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
             if package_reloader_settings.get("reload_on_save"):
                 sublime.set_timeout(
-                    lambda: view.window().run_command("package_reloader_reload"))
+                    lambda: view.window().run_command("package_reloader_reload"), 300)
 
 
 class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):
