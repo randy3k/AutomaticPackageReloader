@@ -5,6 +5,8 @@ import os.path
 import posixpath
 import threading
 import sys
+import functools
+
 
 from .dprint import dprint
 from .importer import ReloadingImporter
@@ -37,6 +39,10 @@ def get_package_modules(package_names):
         except AttributeError:
             pass
 
+    @functools.lru_cache(1024)
+    def _package_python_matched(package):
+        return package_python_matched(package)
+
     for module in sys.modules.values():
         try:
             base, path = next(
@@ -49,13 +55,13 @@ def get_package_modules(package_names):
             continue
         else:
             pkg_name = module.__name__.split(".")[0]
-            is_plugin = (os.path.dirname(path) == base) and package_python_matched(pkg_name)
+            is_plugin = (os.path.dirname(path) == base) and _package_python_matched(pkg_name)
             yield module.__name__, is_plugin
 
     # get all the top level plugins in case they were removed from sys.modules
     for path in sublime.find_resources("*.py"):
         for pkg_name in package_names:
-            if not package_python_matched(pkg_name):
+            if not _package_python_matched(pkg_name):
                 continue
             if posixpath.dirname(path) == 'Packages/'+pkg_name:
                 yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
