@@ -5,7 +5,7 @@ import sys
 import shutil
 from threading import Thread, Lock
 
-from .reloader import reload_package
+from .reloader import reload_package, load_dummy
 from .utils import ProgressBar, read_config, has_package, package_of, package_python_version
 
 
@@ -24,8 +24,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
         if file_name and file_name.endswith(".py") and package_of(file_name):
             package_reloader_settings = sublime.load_settings("package_reloader.sublime-settings")
             if package_reloader_settings.get("reload_on_save"):
-                sublime.set_timeout(
-                    lambda: view.window().run_command("package_reloader_reload"), 300)
+                view.window().run_command("package_reloader_reload")
 
 
 class PackageReloaderToggleReloadOnSaveCommand(sublime_plugin.WindowCommand):

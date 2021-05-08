@@ -53,7 +53,6 @@ def has_package(package):
 
 
 def package_python_version(package):
-    print("package_python_version", package)
     try:
         version = sublime.load_resource("Packages/{}/.python-version".format(package))
     except (FileNotFoundError, IOError):

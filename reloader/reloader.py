@@ -71,6 +71,9 @@ def reload_package(package, dependencies=[], dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
+    if dummy:
+        load_dummy(verbose)
+
     packages = [package] + dependencies
     parents = set()
     for package in packages:
