@@ -109,10 +109,12 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
         if not console_opened and open_console:
             self.window.run_command("show_panel", {"panel": "console"})
         dependencies = read_config(package, "dependencies", [])
+        extra_modules = read_config(package, "extra_modules", [])
         if verbose is None:
             verbose = pr_settings.get('verbose')
         try:
-            reload_package(package, dependencies=dependencies, verbose=verbose)
+            reload_package(
+                package, dependencies=dependencies, extra_modules=extra_modules, verbose=verbose)
             if close_console_on_success:
                 self.window.run_command("hide_panel", {"panel": "console"})
 

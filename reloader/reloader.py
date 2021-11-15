@@ -67,7 +67,7 @@ def get_package_modules(package_names):
                 yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
 
 
-def reload_package(package, dependencies=[], dummy=True, verbose=True):
+def reload_package(package, dependencies=[], extra_modules=[], dummy=True, verbose=True):
     if verbose:
         dprint("begin", fill='=')
 
@@ -94,8 +94,9 @@ def reload_package(package, dependencies=[], dummy=True, verbose=True):
 
     # these are modules marked to be reloaded, they are not necessarily reloaded
     modules_to_reload = [sys.modules[m] for m, is_plugin in modules if m in sys.modules]
+    extra_modules_to_reload = [sys.modules[m] for m in extra_modules if m in sys.modules]
 
-    with ReloadingImporter(modules_to_reload, verbose) as importer:
+    with ReloadingImporter(modules_to_reload + extra_modules_to_reload, verbose) as importer:
         if plugins:
             # we only reload top level plugin_modules to mimic Sublime Text natural order
             for plugin in plugins:
@@ -114,6 +115,9 @@ def reload_package(package, dependencies=[], dummy=True, verbose=True):
             # it is possibly a dependency but no packages use it
             for module in modules_to_reload:
                 importer.reload(module)
+
+        for module in extra_modules_to_reload:
+            importer.reload(module)
 
     if dummy:
         load_dummy(verbose)
