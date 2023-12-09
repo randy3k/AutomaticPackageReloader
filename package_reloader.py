@@ -3,6 +3,7 @@ import sublime
 import os
 import sys
 import shutil
+from textwrap import dedent
 from threading import Thread, Lock
 
 from .reloader import reload_package
@@ -144,9 +145,18 @@ def plugin_loaded():
         APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
         if not os.path.exists(APR33):
             os.makedirs(APR33)
-        data = sublime.load_resource("Packages/AutomaticPackageReloader/py33/package_reloader.py")
         with open(os.path.join(APR33, "package_reloader.py"), 'w') as f:
-            f.write(data.replace("\r\n", "\n"))
+            f.write(
+                dedent(
+                    """
+                    from AutomaticPackageReloader import package_reloader as package_reloader38  # noqa
+
+
+                    class PackageReloader33ReloadCommand(package_reloader38.PackageReloaderReloadCommand):
+                        pass
+                    """
+                ).lstrip()
+            )
         with open(os.path.join(APR33, ".package_reloader.json"), 'w') as f:
             f.write("{\"dependencies\" : [\"AutomaticPackageReloader\"]}")
 
