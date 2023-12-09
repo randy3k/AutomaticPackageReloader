@@ -1,12 +1,10 @@
+import functools
+import os
+import posixpath
+import sys
+
 import sublime
 import sublime_plugin
-import os
-import os.path
-import posixpath
-import threading
-import sys
-import functools
-
 
 from .dprint import dprint
 from .importer import ReloadingImporter
@@ -67,12 +65,9 @@ def get_package_modules(package_names):
                 yield pkg_name + '.' + posixpath.basename(posixpath.splitext(path)[0]), True
 
 
-def reload_package(package, dependencies=[], extra_modules=[], dummy=True, verbose=True):
+def reload_package(package, dependencies=[], extra_modules=[], verbose=True):
     if verbose:
         dprint("begin", fill='=')
-
-    if dummy:
-        load_dummy(verbose)
 
     packages = [package] + dependencies
     parents = set()
@@ -119,62 +114,5 @@ def reload_package(package, dependencies=[], extra_modules=[], dummy=True, verbo
         for module in extra_modules_to_reload:
             importer.reload(module)
 
-    if dummy:
-        load_dummy(verbose)
-
     if verbose:
         dprint("end", fill='-')
-
-
-def load_dummy(verbose):
-    """
-    Hack to trigger automatic "reloading plugins".
-
-    This is needed to ensure TextCommand's and WindowCommand's are ready.
-    """
-    if verbose:
-        dprint("installing dummy package")
-
-    if sys.version_info >= (3, 8):
-        # in ST 4, User package is always loaded in python 3.8
-        dummy_name = "User._dummy"
-        dummy_py = os.path.join(sublime.packages_path(), "User", "_dummy.py")
-    else:
-        # in ST 4, packages under Packages are always loaded in python 3.3
-        dummy_name = "_dummy"
-        dummy_py = os.path.join(sublime.packages_path(), "_dummy.py")
-
-    with open(dummy_py, "w"):
-        pass
-
-    def remove_dummy(trial=0):
-        if dummy_name in sys.modules:
-            if verbose:
-                dprint("removing dummy package")
-            try:
-                os.unlink(dummy_py)
-            except FileNotFoundError:
-                pass
-            after_remove_dummy()
-        elif trial < 300:
-            threading.Timer(0.1, lambda: remove_dummy(trial + 1)).start()
-        else:
-            try:
-                os.unlink(dummy_py)
-            except FileNotFoundError:
-                pass
-
-    condition = threading.Condition()
-
-    def after_remove_dummy(trial=0):
-        if dummy_name not in sys.modules:
-            condition.acquire()
-            condition.notify()
-            condition.release()
-        elif trial < 300:
-            threading.Timer(0.1, lambda: after_remove_dummy(trial + 1)).start()
-
-    threading.Timer(0.1, remove_dummy).start()
-    condition.acquire()
-    condition.wait(30)  # 30 seconds should be enough for all regular usages
-    condition.release()

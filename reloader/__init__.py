@@ -1,1 +1,1 @@
-from .reloader import reload_package, load_dummy
+from .reloader import reload_package
