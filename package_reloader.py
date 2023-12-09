@@ -149,6 +149,8 @@ def plugin_loaded():
             f.write(data.replace("\r\n", "\n"))
         with open(os.path.join(APR33, ".package_reloader.json"), 'w') as f:
             f.write("{\"dependencies\" : [\"AutomaticPackageReloader\"]}")
+        # hide auto-generated package from Package Control's quick panels
+        open(os.path.join(APR33, ".hidden-sublime-package"), 'a').close()
 
 
 def plugin_unloaded():
