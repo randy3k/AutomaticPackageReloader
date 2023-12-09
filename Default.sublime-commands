@@ -5,7 +5,7 @@
     },
     {
         "caption": "Automatic Package Reloader",
-        "command": "package_reloader_reload", "args": {"pkg_name": "<prompt>"}
+        "command": "package_reloader_reload", "args": {"package": "<prompt>"}
     },
     {
         "caption": "Automatic Package Reloader: Toggle Reload on Save",
