@@ -12,13 +12,11 @@ else:
         """
         manager = PackageManager()
         packages = manager.list_packages()
-        dependencies = map(lambda lib: lib.name, manager.list_libraries())
-        everything = list(packages) + list(dependencies)        
 
         recursive_dependencies = set()
 
         dependency_relationships = {
-            name: manager.get_libraries(name) for name in everything
+            name: manager.get_libraries(name) for name in packages
         }
 
         def rec(name):
@@ -27,7 +25,7 @@ else:
 
             recursive_dependencies.add(name)
 
-            for pkg_name in everything:
+            for pkg_name in packages:
                 if name in dependency_relationships[pkg_name]:
                     rec(pkg_name)
 
