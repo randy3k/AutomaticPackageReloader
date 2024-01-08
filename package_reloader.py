@@ -3,6 +3,7 @@ import sublime
 import os
 import sys
 import shutil
+from textwrap import dedent
 from threading import Thread, Lock
 
 from .reloader import reload_package
@@ -142,15 +143,32 @@ class PackageReloaderReloadCommand(sublime_plugin.WindowCommand):
 def plugin_loaded():
     if sys.version_info >= (3, 8):
         APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
-        if not os.path.exists(APR33):
-            os.makedirs(APR33)
-        data = sublime.load_resource("Packages/AutomaticPackageReloader/py33/package_reloader.py")
-        with open(os.path.join(APR33, "package_reloader.py"), 'w') as f:
-            f.write(data.replace("\r\n", "\n"))
-        with open(os.path.join(APR33, ".package_reloader.json"), 'w') as f:
-            f.write("{\"dependencies\" : [\"AutomaticPackageReloader\"]}")
+        os.makedirs(APR33, exist_ok=True)
         # hide auto-generated package from Package Control's quick panels
         open(os.path.join(APR33, ".hidden-sublime-package"), 'a').close()
+        
+        try:
+            # write only if not exists to avoid ST reloading the package twice at each startup
+            with open(os.path.join(APR33, "package_reloader.py"), 'x') as f:
+                f.write(
+                    dedent(
+                        """
+                        from AutomaticPackageReloader import package_reloader as package_reloader38  # noqa
+
+
+                        class PackageReloader33ReloadCommand(package_reloader38.PackageReloaderReloadCommand):
+                            pass
+                        """
+                    ).lstrip()
+                )
+        except FileExistsError:
+            pass
+
+        try:
+            with open(os.path.join(APR33, ".package_reloader.json"), 'w') as f:
+                f.write("{\"dependencies\" : [\"AutomaticPackageReloader\"]}")
+        except FileExistsError:
+            pass
 
 
 def plugin_unloaded():
