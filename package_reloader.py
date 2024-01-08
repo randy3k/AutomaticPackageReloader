@@ -144,7 +144,9 @@ def plugin_loaded():
     if sys.version_info >= (3, 8):
         APR33 = os.path.join(sublime.packages_path(), "AutomaticPackageReloader33")
         os.makedirs(APR33, exist_ok=True)
-
+        # hide auto-generated package from Package Control's quick panels
+        open(os.path.join(APR33, ".hidden-sublime-package"), 'a').close()
+        
         try:
             # write only if not exists to avoid ST reloading the package twice at each startup
             with open(os.path.join(APR33, "package_reloader.py"), 'x') as f:
