@@ -101,13 +101,7 @@ def reload_package(package, dependencies=[], extra_modules=[], dummy=True, verbo
             # we only reload top level plugin_modules to mimic Sublime Text natural order
             for plugin in plugins:
                 if plugin in sys.modules:
-                    module = sys.modules[plugin]
-                    importer.reload(module)
-
-            for plugin in plugins:
-                if plugin in sys.modules:
-                    module = sys.modules[plugin]
-                    sublime_plugin.load_module(module)
+                    sublime_plugin.load_module(importer.reload(sys.modules[plugin]))
                 else:
                     # in case we missed something
                     sublime_plugin.reload_plugin(plugin)
